@@ -11,10 +11,13 @@ class Score extends Model
     use HasFactory;
 
     protected $fillable = [
-        'participant_id',
-        'mark',
-        'grade',
-    ];
+    'participant_id',
+    'mark',
+    'grade',
+    'rank',
+    'points'
+];
+
 
     public function participant()
     {

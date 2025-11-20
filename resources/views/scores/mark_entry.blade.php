@@ -5,9 +5,9 @@
 <div class="card">
     <div class="card-header">
         <h4>
-            Mark Entry - {{ $event->name }}  
+            Mark Entry - {{ $event->name }}
             ({{ ucfirst($event->section) }}) - 
-            {{ ucfirst($event->stage_type) }} - 
+            {{ ucfirst($event->stage_type) }} -
             Category {{ $event->category }}
         </h4>
     </div>
@@ -26,24 +26,25 @@
                     <th>Team</th>
                     <th>Mark</th>
                     <th>Grade</th>
+                    <th>Rank</th>
                     <th>Save</th>
                 </tr>
             </thead>
 
             <tbody>
+
                 @foreach($participants as $participant)
                 <tr>
+
                     <form action="{{ route('scores.save') }}" method="POST">
                         @csrf
-
                         <input type="hidden" name="participant_id" value="{{ $participant->id }}">
 
                         <td>{{ $participant->chest_no }}</td>
                         <td>{{ $participant->name }}</td>
                         <td>{{ $participant->team }}</td>
 
-                        <!-- MARK INPUT -->
-                        <td style="width:120px;">
+                        <td>
                             <input type="number"
                                    name="mark"
                                    value="{{ $participant->score->mark ?? '' }}"
@@ -51,8 +52,7 @@
                                    min="0" max="100">
                         </td>
 
-                        <!-- GRADE SELECT DROPDOWN -->
-                        <td style="width:150px;">
+                        <td>
                             <select name="grade" class="form-control" required>
                                 <option value="A+" {{ ($participant->score->grade ?? '') == 'A+' ? 'selected' : '' }}>A+</option>
                                 <option value="A"  {{ ($participant->score->grade ?? '') == 'A'  ? 'selected' : '' }}>A</option>
@@ -64,11 +64,24 @@
                         </td>
 
                         <td>
+                            <select name="rank" class="form-control" required>
+                                <option value="">-- Rank --</option>
+                                <option value="1" {{ ($participant->score->rank ?? '') == 1 ? 'selected' : '' }}>1st</option>
+                                <option value="2" {{ ($participant->score->rank ?? '') == 2 ? 'selected' : '' }}>2nd</option>
+                                <option value="3" {{ ($participant->score->rank ?? '') == 3 ? 'selected' : '' }}>3rd</option>
+                                <option value="0" {{ ($participant->score->rank ?? '') == 0 ? 'selected' : '' }}>No Rank</option>
+                            </select>
+                        </td>
+
+                        <td>
                             <button class="btn btn-success btn-sm">Save</button>
                         </td>
+
                     </form>
+
                 </tr>
                 @endforeach
+
             </tbody>
 
         </table>

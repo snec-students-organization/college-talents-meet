@@ -16,6 +16,8 @@ use App\Models\Score;   // ✔ Required for team calculation
 |--------------------------------------------------------------------------
 */
 
+
+
 Route::get('/', function () {
 
     // 🔐 Security Check
@@ -23,7 +25,7 @@ Route::get('/', function () {
         return redirect('/secure');
     }
 
-    // 🟦 TEAM SCORE CALCULATION (Out of points column)
+    // Fetch all scores with participant data
     $scores = Score::with('participant')->get();
 
     $thurasScore = 0;
@@ -31,21 +33,23 @@ Route::get('/', function () {
 
     foreach ($scores as $score) {
 
-        // Ensure participant exists
-        if ($score->participant) {
+        // Skip if participant record missing
+        if (!$score->participant) continue;
 
-            if ($score->participant->team === 'Thuras') {
-                $thurasScore += $score->points;  // add points
-            } else {
-                $aqeedaScore += $score->points;
-            }
+        // Add to correct team
+        if ($score->participant->team === 'Thuras') {
+            $thurasScore += $score->points;   // Rank Points + Grade Points
+        } 
+        else {
+            $aqeedaScore += $score->points;
         }
     }
 
-    // Return home view with team scores
+    // Show home page with team totals
     return view('home', compact('thurasScore', 'aqeedaScore'));
-
+    
 })->name('home');
+
 
 
 // 🔐 SECURITY ROUTES
