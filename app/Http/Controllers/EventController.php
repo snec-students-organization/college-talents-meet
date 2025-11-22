@@ -27,19 +27,48 @@ class EventController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $request->validate([
-    'section' => 'required|in:junior,senior,general',
-    'category' => 'required',
-    'type' => 'required',
-    'stage_type' => 'required',
-    'name' => 'required'
-]);
+{
+    $type = $request->forced_type ?: $request->type;
+
+    Event::create([
+        'name'       => $request->name,
+        'section'    => $request->section,
+        'category'   => $request->category,
+        'type'       => $type, // GENERAL ALWAYS = group
+        'stage_type' => $request->stage_type
+    ]);
+
+    return redirect()->route('events.index')->with('success', 'Event Added');
+}
+public function edit($id)
+{
+    $event = Event::findOrFail($id);
+    return view('events.edit', compact('event'));
+}
+
+public function update(Request $request, $id)
+{
+    $event = Event::findOrFail($id);
+
+    $event->update([
+        'name'       => $request->name,
+        'section'    => $request->section,
+        'category'   => $request->category,
+        'type'       => $request->type,
+        'stage_type' => $request->stage_type,
+    ]);
+
+    return redirect()->route('events.index')->with('success', 'Event updated successfully');
+}
+
+public function destroy($id)
+{
+    Event::findOrFail($id)->delete();
+
+    return redirect()->route('events.index')->with('success', 'Event deleted successfully');
+}
 
 
-        Event::create($request->all());
 
-        return redirect()->route('events.index')->with('success', 'Event added!');
-    }
 }
 

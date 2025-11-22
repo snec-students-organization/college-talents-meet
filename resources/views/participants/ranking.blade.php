@@ -2,56 +2,82 @@
 
 @section('content')
 
-<div class="card">
-    <div class="card-header d-flex justify-content-between">
-        <h4>Participant Ranking (By Percentage)</h4>
+<div class="container">
 
-        <a href="{{ route('participants.index') }}" class="btn btn-secondary btn-sm">
-            Back
-        </a>
+    <div class="text-center mb-4">
+        <h2 class="fw-bold">Participant Ranking</h2>
+        <p class="text-muted">Ranked by Percentage (Marks out of 10 → 100%)</p>
     </div>
 
-    <div class="card-body">
+    <a href="{{ route('participants.index') }}" class="btn btn-secondary mb-3">
+        ← Back to Participants
+    </a>
 
-        <table class="table table-bordered table-striped">
-            <thead class="table-dark">
-                <tr>
-                    <th>Rank</th>
-                    <th>Name</th>
-                    <th>Chest No</th>
-                    <th>Team</th>
-                    <th>Total Mark</th>
-                    <th>Percentage</th>
-                    <th>Programs</th>
-                </tr>
-            </thead>
+    <div class="card shadow">
+        <div class="card-header text-center bg-dark text-white">
+            <h4 class="mb-0">Overall Performance Ranking</h4>
+        </div>
 
-            <tbody>
-                @foreach($ranking as $rank => $p)
-                <tr>
-                    <td><strong>{{ $rank+1 }}</strong></td>
-                    <td>{{ $p['name'] }}</td>
-                    <td>{{ $p['chest_no'] }}</td>
-                    <td>{{ $p['team'] }}</td>
-                    <td>{{ $p['scored'] }} / {{ $p['possible'] }}</td>
-                    <td><strong>{{ number_format($p['percentage'], 2) }}%</strong></td>
+        <div class="card-body p-0">
 
-                    <td>
-                        <ul class="mb-0">
-                            @foreach($p['events'] as $e)
-                            <li>
-                                {{ $e->event->name }}
-                                <span class="badge bg-dark">{{ ucfirst($e->event->stage_type) }}</span>
-                            </li>
-                            @endforeach
-                        </ul>
-                    </td>
-                </tr>
+            <table class="table table-bordered table-striped text-center mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Rank</th>
+                        <th>Chest No</th>
+                        <th>Name</th>
+                        <th>Team</th>
+                        <th>Total Points</th>
+                        <th>Percentage</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                @php $rank = 1; @endphp
+
+                @foreach($ranking as $r)
+                    <tr>
+                        {{-- RANK BADGE --}}
+                        <td class="fw-bold">
+                            @if($rank == 1)
+                                🥇 <span class="text-warning">{{ $rank }}</span>
+                            @elseif($rank == 2)
+                                🥈 <span class="text-secondary">{{ $rank }}</span>
+                            @elseif($rank == 3)
+                                🥉 <span class="text-brown">{{ $rank }}</span>
+                            @else
+                                {{ $rank }}
+                            @endif
+                        </td>
+
+                        <td>{{ $r->chest_no }}</td>
+                        <td class="fw-bold">{{ $r->name }}</td>
+
+                        <td>
+                            @if($r->team == 'Thuras')
+                                <span class="badge bg-primary">{{ $r->team }}</span>
+                            @else
+                                <span class="badge bg-success">{{ $r->team }}</span>
+                            @endif
+                        </td>
+
+                        <td><strong>{{ $r->points }}</strong></td>
+
+                        <td class="fw-bold">
+                            {{ $r->percentage }}%
+                        </td>
+
+                    </tr>
+
+                    @php $rank++; @endphp
                 @endforeach
-            </tbody>
-        </table>
 
+                </tbody>
+            </table>
+
+        </div>
     </div>
+
 </div>
 
 @endsection

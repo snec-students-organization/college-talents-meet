@@ -3,139 +3,173 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use App\Models\Participant;
 use App\Models\Event;
 use App\Models\Score;
-
+use App\Models\FixedParticipant;
 
 class ParticipantController extends Controller
 {
+    // ---------------------------------------------------------
+    // INDEX
+    // ---------------------------------------------------------
     public function index()
     {
         $participants = Participant::with('event')->get();
         return view('participants.index', compact('participants'));
     }
 
-
+    // ---------------------------------------------------------
+    // CREATE PAGE
+    // ---------------------------------------------------------
     public function create()
     {
         $events = Event::all();
-        $fixed  = DB::table('fixed_participants')->get();
+        $fixed  = FixedParticipant::all(); // use model, not DB::table
 
         return view('participants.create', compact('events', 'fixed'));
     }
 
-
+    // ---------------------------------------------------------
+    // STORE PARTICIPANTS
+    // ---------------------------------------------------------
     public function store(Request $request)
     {
-        $request->validate([
-            'fixed_id' => 'required',
-            'event_id' => 'required',
-        ]);
+        $event = Event::findOrFail($request->event_id);
 
-        // Fetch the fixed participant
-        $fixed = DB::table('fixed_participants')->where('id', $request->fixed_id)->first();
+        // =====================================================
+        // GROUP EVENT
+        // =====================================================
+        if ($event->type === 'group') {
 
-        if (!$fixed) {
-            return back()->withErrors(['fixed_id' => 'Participant not found in fixed list.']);
+            if (!isset($request->members) || count($request->members) == 0) {
+                return back()->with('error', 'Please select at least one group member');
+            }
+
+            $nextGroupId = (Participant::max('group_id') ?? 0) + 1;
+
+            foreach ($request->members as $fixedId) {
+
+                $fp = FixedParticipant::find($fixedId);
+                if (!$fp) continue;
+
+                Participant::create([
+                    'name'      => $fp->name,
+                    'team'      => $fp->team,
+                    'chest_no'  => $fp->chest_no,
+                    'event_id'  => $event->id,
+                    'group_id'  => $nextGroupId,
+                ]);
+            }
+
+            return redirect()->route('participants.index')
+                ->with('success', 'Group participants added successfully');
         }
 
-        // Create participant entry linked to event
+        // =====================================================
+        // INDIVIDUAL EVENT
+        // =====================================================
         Participant::create([
-            'name'      => $fixed->name,
-            'team'      => $fixed->team,
-            'chest_no'  => $fixed->chest_no,
-            'event_id'  => $request->event_id,
+            'name'      => $request->name,
+            'team'      => $request->team,
+            'chest_no'  => $request->chest_no,
+            'event_id'  => $event->id,
+            'group_id'  => null,
         ]);
 
-        return redirect()->back()->with('success', 'Participant added successfully!');
+        return redirect()->route('participants.index')
+            ->with('success', 'Participant added successfully');
     }
 
-
+    // ---------------------------------------------------------
+    // DELETE
+    // ---------------------------------------------------------
     public function destroy($id)
     {
         Participant::findOrFail($id)->delete();
         return redirect()->back()->with('success', 'Participant removed.');
     }
-    public function summary($chest_no)
+
+    // ---------------------------------------------------------
+    // SUMMARY FOR ONE PARTICIPANT
+    // ---------------------------------------------------------
+   public function summary($chest_no)
 {
-    // Get all event entries for this participant
-    $records = Participant::where('chest_no', $chest_no)
-                ->with('event')
-                ->get();
+    // Find participant by chest number
+    $participant = Participant::where('chest_no', $chest_no)->firstOrFail();
 
-    // Calculate scores
-    $totalScored = 0;
-    $totalPossible = 0;
+    // Load all scores for this chest number (group OR individual)
+    $scores = Score::whereIn(
+        'participant_id',
+        Participant::where('chest_no', $chest_no)->pluck('id')
+    )
+    ->with('event')
+    ->get();
 
-    foreach ($records as $rec) {
-        $score = Score::where('participant_id', $rec->id)->first();
+    // Total events
+    $totalEvents = $scores->count();
 
-        if ($score) {
-            $totalScored += $score->mark; // scored out of 10
-            $totalPossible += 10;         // each event = 10 mark max
-        }
-    }
+    // Total Marks (out of 10 each)
+    $totalMarks = $scores->sum('mark');
 
-    // Final percentage
-    $percentage = ($totalPossible > 0)
-                    ? ($totalScored / $totalPossible) * 100
-                    : 0;
+    // Percentage
+    $percentage = ($totalEvents > 0)
+        ? round(($totalMarks / ($totalEvents * 10)) * 100)
+        : 0;
 
-    return view('participants.summary', [
-        'records'      => $records,
-        'totalScored'  => $totalScored,
-        'totalPossible'=> $totalPossible,
-        'percentage'   => $percentage,
-        'chest_no'     => $chest_no
-    ]);
+    // Total Points (Rank + Grade points)
+    $totalPoints = $scores->sum('points');
+
+    return view('participants.summary', compact(
+        'participant',
+        'scores',
+        'totalEvents',
+        'totalMarks',
+        'percentage',
+        'totalPoints'
+    ));
 }
-public function ranking()
+
+
+    // ---------------------------------------------------------
+    // PARTICIPANT RANKING (BY PERCENTAGE)
+    // ---------------------------------------------------------
+    public function ranking()
 {
-    // Get all participants grouped by chest number
-    $grouped = Participant::with('event')->get()->groupBy('chest_no');
+    // Load fixed participants list
+    $fixed = \DB::table('fixed_participants')->get();
 
-    $ranking = [];
+    // Load scores grouped by chest_no
+    $allScores = Participant::with('score', 'event')
+                    ->join('scores', 'participants.id', '=', 'scores.participant_id')
+                    ->get()
+                    ->groupBy('chest_no');
 
-    foreach ($grouped as $chest => $items) 
-    {
-        $name = $items->first()->name;
-        $team = $items->first()->team;
+    $ranking = $fixed->map(function ($fp) use ($allScores) {
 
-        // Score calculation
-        $totalScored = 0;
-        $totalPossible = 0;
+        $scores = $allScores->get($fp->chest_no, collect());
 
-        foreach ($items as $p) {
-            $score = Score::where('participant_id', $p->id)->first();
-            
-            if ($score) {
-                $totalScored += $score->mark; // out of 10
-                $totalPossible += 10;
-            }
-        }
+        $eventCount = $scores->count();
 
-        $percentage = ($totalPossible > 0)
-                        ? ($totalScored / $totalPossible) * 100
-                        : 0;
+        $totalMarks = $scores->sum('mark');
+        $totalPoints = $scores->sum('points');
 
-        $ranking[] = [
-            'name'       => $name,
-            'chest_no'   => $chest,
-            'team'       => $team,
-            'scored'     => $totalScored,
-            'possible'   => $totalPossible,
+        $percentage = ($eventCount > 0)
+            ? round(($totalMarks / ($eventCount * 10)) * 100)
+            : 0;
+
+        return (object)[
+            'name'       => $fp->name,
+            'team'       => $fp->team,
+            'chest_no'   => $fp->chest_no,
             'percentage' => $percentage,
-            'events'     => $items,
+            'points'     => $totalPoints,
         ];
-    }
-
-    // Sort by percentage (highest first)
-    $ranking = collect($ranking)->sortByDesc('percentage')->values();
+    })
+    ->sortByDesc('percentage')
+    ->values();
 
     return view('participants.ranking', compact('ranking'));
 }
-
 
 }

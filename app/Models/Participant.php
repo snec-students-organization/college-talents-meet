@@ -22,8 +22,14 @@ class Participant extends Model
         return $this->belongsTo(Event::class);
     }
 
-    public function score()
-    {
-        return $this->hasOne(Score::class);
-    }
+    public function scores()
+{
+    return $this->hasMany(\App\Models\Score::class, 'participant_id');
+}
+public function score()
+{
+    return $this->hasOne(\App\Models\Score::class, 'participant_id');
+}
+
+
 }

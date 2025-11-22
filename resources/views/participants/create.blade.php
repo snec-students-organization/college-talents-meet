@@ -4,7 +4,7 @@
 
 <div class="card w-75 mx-auto">
     <div class="card-header">
-        <h4>Add Participant to Event</h4>
+        <h4>Add Participant(s) to Event</h4>
     </div>
 
     <div class="card-body">
@@ -12,70 +12,184 @@
         <form action="{{ route('participants.store') }}" method="POST">
             @csrf
 
-            <!-- Team -->
+            <!-- EVENT -->
+            <div class="mb-3">
+                <label class="form-label">Select Event</label>
+                <select id="eventSelect" name="event_id" class="form-control" required>
+                    <option value="">-- Select Event --</option>
+
+                    @foreach($events as $event)
+                        <option value="{{ $event->id }}"
+                                data-type="{{ $event->type }}"
+                                data-section="{{ $event->section }}">
+                            {{ $event->name }} ({{ ucfirst($event->section) }} | {{ ucfirst($event->type) }})
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- TEAM -->
             <div class="mb-3">
                 <label class="form-label">Team</label>
-                <select id="teamSelect" class="form-control" required>
+                <select id="teamSelect" name="team" class="form-control" required>
                     <option value="">-- Select Team --</option>
                     <option value="Thuras">Thuras</option>
                     <option value="Aqeeda">Aqeeda</option>
                 </select>
             </div>
 
-            <!-- Participant List -->
-            <div class="mb-3">
-                <label class="form-label">Select Participant</label>
-                <select name="fixed_id" id="participantSelect" class="form-control" required>
-                    <option value="">-- Select Participant --</option>
+            <!-- INDIVIDUAL EVENT SECTION -->
+            <div id="individualSection">
 
-                    @foreach($fixed as $p)
-                        <option value="{{ $p->id }}" data-team="{{ $p->team }}" data-chest="{{ $p->chest_no }}">
-                            {{ $p->name }} ({{ $p->chest_no }})
-                        </option>
-                    @endforeach
-                </select>
+                <div id="individualMembers" class="border p-3 mb-2 bg-light"
+                     style="max-height:250px; overflow-y:auto; display:none;">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Chest No</label>
+                    <input type="text" name="chest_no" id="indChest" class="form-control">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Participant Name</label>
+                    <input type="text" name="name" id="indName" class="form-control">
+                </div>
+
             </div>
 
-            <!-- Auto Chest No -->
-            <div class="mb-3">
-                <label class="form-label">Chest No</label>
-                <input type="text" id="chestNo" class="form-control" readonly>
+            <!-- GROUP EVENT SECTION -->
+            <div id="groupSection" style="display:none;">
+
+                <label class="form-label">Select Group Members</label>
+
+                <div id="groupMembers" class="border p-3 bg-light"
+                     style="max-height:250px; overflow:auto;">
+                </div>
+
+                <small class="text-muted">Select multiple members</small>
             </div>
 
-            <!-- EVENT -->
-            <div class="mb-3">
-                <label class="form-label">Event</label>
-                <select name="event_id" class="form-control" required>
-                    <option value="">-- Select Event --</option>
-                    @foreach($events as $event)
-                        <option value="{{ $event->id }}">{{ $event->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <button class="btn btn-success px-4">Save</button>
+            <button class="btn btn-success w-100 mt-3">Save</button>
 
         </form>
-
     </div>
 </div>
 
 <script>
-document.getElementById('teamSelect').addEventListener('change', function() {
-    let team = this.value;
-    let options = document.querySelectorAll('#participantSelect option');
 
-    options.forEach(opt => {
-        if (opt.value === "") return; 
+let fixedData = @json($fixed);
 
-        opt.style.display = (opt.dataset.team === team) ? 'block' : 'none';
+const eventSelect        = document.getElementById('eventSelect');
+const teamSelect         = document.getElementById('teamSelect');
+const individualSection  = document.getElementById('individualSection');
+const individualMembers  = document.getElementById('individualMembers');
+const groupSection       = document.getElementById('groupSection');
+const groupMembers       = document.getElementById('groupMembers');
+
+eventSelect.addEventListener('change', updateUI);
+teamSelect.addEventListener('change', updateUI);
+
+function updateUI() {
+
+    if (!eventSelect.value) return;
+
+    const selected = eventSelect.selectedOptions[0];
+    const type     = selected.dataset.type;
+    const section  = selected.dataset.section;
+    const team     = teamSelect.value;
+
+    // Reset
+    individualMembers.style.display = "none";
+    groupSection.style.display = "none";
+    individualSection.style.display = "block";
+
+    // ⭐ GENERAL SECTION (UPDATED)
+    if (section === "general") {
+
+        teamSelect.disabled = false;
+
+        if (!team) return; // team must be selected
+
+        // GROUP GENERAL
+        if (type === "group") {
+            groupSection.style.display = "block";
+            individualSection.style.display = "none";
+            loadGroupMembers(team, "ALL");
+            return;
+        }
+
+        // INDIVIDUAL GENERAL
+        individualSection.style.display = "block";
+        loadIndividualMembers(team, "ALL");
+        return;
+    }
+
+    // ⭐ JUNIOR / SENIOR SECTION
+    teamSelect.disabled = false;
+
+    // GROUP EVENT
+    if (type === "group") {
+
+        groupSection.style.display = "block";
+        individualSection.style.display = "none";
+
+        if (!team) return;
+
+        loadGroupMembers(team, section);
+        return;
+    }
+
+    // INDIVIDUAL
+    if (team) {
+        loadIndividualMembers(team, section);
+    }
+}
+
+function loadGroupMembers(team, section) {
+    groupMembers.innerHTML = '';
+
+    fixedData.forEach(p => {
+        if ((p.team === team) &&
+            (section === "ALL" || p.section === section)) {
+
+            groupMembers.innerHTML += `
+                <div class="form-check">
+                    <input type="checkbox" name="members[]" value="${p.id}" class="form-check-input">
+                    <label class="form-check-label">${p.name} (${p.chest_no})</label>
+                </div>
+            `;
+        }
     });
-});
+}
 
-document.getElementById('participantSelect').addEventListener('change', function() {
-    let chest = this.selectedOptions[0].dataset.chest;
-    document.getElementById('chestNo').value = chest;
-});
+function loadIndividualMembers(team, section) {
+
+    individualMembers.style.display = "block";
+    individualMembers.innerHTML = '';
+
+    fixedData.forEach(p => {
+
+        if ((p.team === team) &&
+            (section === "ALL" || p.section === section)) {
+
+            individualMembers.innerHTML += `
+                <div class="form-check">
+                    <input type="radio" name="select_individual" value="${p.id}"
+                           class="form-check-input"
+                           onclick="fillIndividual('${p.name}','${p.chest_no}')">
+                    <label class="form-check-label">${p.name} (${p.chest_no})</label>
+                </div>
+            `;
+        }
+    });
+}
+
+// Auto fill
+function fillIndividual(name, chest) {
+    document.getElementById('indName').value  = name;
+    document.getElementById('indChest').value = chest;
+}
+
 </script>
 
 @endsection

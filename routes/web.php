@@ -67,7 +67,9 @@ Route::post('/secure/change-password', [SecurityController::class, 'changePasswo
 Route::get('/events', [EventController::class, 'index'])->name('events.index');
 Route::get('/events/create', [EventController::class, 'create'])->name('events.create');
 Route::post('/events/store', [EventController::class, 'store'])->name('events.store');
-
+Route::get('/events/{id}/edit', [EventController::class, 'edit'])->name('events.edit');
+Route::put('/events/{id}', [EventController::class, 'update'])->name('events.update');
+Route::delete('/events/{id}', [EventController::class, 'destroy'])->name('events.destroy');
 
 // ------------------------------
 // PARTICIPANTS
@@ -75,7 +77,7 @@ Route::post('/events/store', [EventController::class, 'store'])->name('events.st
 Route::get('/participants', [ParticipantController::class, 'index'])->name('participants.index');
 Route::get('/participants/create', [ParticipantController::class, 'create'])->name('participants.create');
 Route::post('/participants/store', [ParticipantController::class, 'store'])->name('participants.store');
-
+Route::delete('/participants/{id}', [ParticipantController::class, 'destroy'])->name('participants.destroy');
 
 // ------------------------------
 // MARK ENTRY
@@ -91,7 +93,9 @@ Route::post('/scores/save', [ScoreController::class, 'saveMark'])->name('scores.
 Route::get('/results', [ResultController::class, 'index'])->name('results.index');
 Route::get('/results/event/{id}', [ResultController::class, 'showEventResults'])->name('results.event');
 
-Route::get('/matrix-results', [ResultController::class, 'matrix'])->name('results.matrix');
+Route::get('/matrix-results', [ResultController::class, 'matrixResults'])
+    ->name('results.matrix');
+
 
 
 // ------------------------------

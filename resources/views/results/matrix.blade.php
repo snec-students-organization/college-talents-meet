@@ -4,57 +4,86 @@
 
 <div class="container">
 
-    <h2 class="mb-4 fw-bold">Event vs Team Matrix Results</h2>
+    <h2 class="fw-bold mb-4 text-center">Matrix Results (All Sections)</h2>
 
-    @foreach($groups as $title => $events)
+    <a href="{{ route('results.index') }}" class="btn btn-secondary mb-3">
+        ← Back to Events
+    </a>
 
-        <div class="card mb-5">
+    @foreach($events as $event)
+
+        <div class="card shadow mb-4">
             <div class="card-header bg-dark text-white">
-                <h5 class="mb-0">{{ $title }}</h5>
+                <h5 class="mb-0">
+                    {{ $event->name }} —
+                    {{ ucfirst($event->section) }} |
+                    {{ ucfirst($event->stage_type) }} |
+                    Category {{ $event->category }}
+                </h5>
             </div>
 
-            <div class="card-body">
+            <div class="card-body p-0">
 
-                @if($events->count() == 0)
-                    <p class="text-muted">No events found.</p>
-                    @continue
-                @endif
-
-                <table class="table table-bordered table-striped text-center">
+                <table class="table table-bordered table-striped text-center mb-0">
                     <thead class="table-dark">
                         <tr>
-                            <th>#</th>
-                            <th>Event Name</th>
-                            <th>Category</th>
-                            <th>Thuras Points</th>
-                            <th>Aqeeda Points</th>
-                            <th>Winner</th>
+                            <th>Team</th>
+                            <th>Participant</th>
+                            <th>Chest No</th>
+                            <th>Mark</th>
+                            <th>Grade</th>
+                            <th>Rank</th>
+                            <th>Points</th>
                         </tr>
                     </thead>
 
                     <tbody>
-                        @foreach($events as $event)
+
+                    @foreach($event->participants as $p)
+
+                        @php
+                            $score  = $p->score;
+                            $mark   = $score->mark   ?? 0;
+                            $grade  = $score->grade  ?? 'NG';
+                            $rank   = $score->rank   ?? '-';
+                            $points = $score->points ?? 0;
+                        @endphp
+
                         <tr>
-                            <td>{{ $loop->iteration }}</td>
-                            <td>{{ $event->name }}</td>
-                            <td>{{ $event->category }}</td>
-
-                            <td><strong>{{ $event->thuras_points }}</strong></td>
-                            <td><strong>{{ $event->aqeeda_points }}</strong></td>
-
+                            <!-- TEAM -->
                             <td>
-                                @if($event->winner == 'Thuras')
-                                    <span class="badge bg-primary">Thuras</span>
-                                @elseif($event->winner == 'Aqeeda')
-                                    <span class="badge bg-success">Aqeeda</span>
-                                @else
-                                    <span class="badge bg-warning text-dark">Tie</span>
-                                @endif
+                                <span class="badge {{ $p->team == 'Thuras' ? 'bg-primary' : 'bg-success' }}">
+                                    {{ $p->team }}
+                                </span>
                             </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
 
+                            <!-- NAME -->
+                            <td class="fw-bold">{{ $p->name }}</td>
+
+                            <!-- CHEST -->
+                            <td>{{ $p->chest_no }}</td>
+
+                            <!-- MARK -->
+                            <td>{{ $mark }}</td>
+
+                            <!-- GRADE -->
+                            <td>{{ $grade }}</td>
+
+                            <!-- RANK -->
+                            <td>
+                                @if($rank == 1) 🥇 1st
+                                @elseif($rank == 2) 🥈 2nd
+                                @elseif($rank == 3) 🥉 3rd
+                                @else — @endif
+                            </td>
+
+                            <!-- POINTS -->
+                            <td class="fw-bold">{{ $points }}</td>
+                        </tr>
+
+                    @endforeach
+
+                    </tbody>
                 </table>
 
             </div>

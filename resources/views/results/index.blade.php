@@ -2,86 +2,47 @@
 
 @section('content')
 
-<div class="card">
-    <div class="card-header">
-        <h4>Select Event to View Final Results</h4>
+<div class="card shadow">
+
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h4 class="fw-bold">Event Results</h4>
+        <a href="{{ route('events.index') }}" class="btn btn-primary btn-sm">← Back to Events</a>
     </div>
 
     <div class="card-body">
 
-        <!-- FILTER FORM -->
-        <form method="GET" class="mb-4">
-            <div class="row">
+        <table class="table table-bordered table-striped text-center">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Event Name</th>
+                    <th>Section</th>
+                    <th>Category</th>
+                    <th>Stage/Offstage</th>
+                    <th>Type</th>
+                    <th>View Results</th>
+                </tr>
+            </thead>
 
-                <!-- Stage / Offstage Filter -->
-                <div class="col-md-3">
-                    <label class="form-label">Stage Type</label>
-                    <select name="stage_type" class="form-control">
-                        <option value="">All (Stage + Offstage)</option>
-                        <option value="stage" {{ request('stage_type') == 'stage' ? 'selected' : '' }}>Stage</option>
-                        <option value="offstage" {{ request('stage_type') == 'offstage' ? 'selected' : '' }}>Offstage</option>
-                    </select>
-                </div>
+            <tbody>
+                @foreach($events as $event)
+                <tr>
+                    <td>{{ $loop->iteration }}</td>
+                    <td>{{ $event->name }}</td>
+                    <td>{{ ucfirst($event->section) }}</td>
+                    <td>{{ $event->category }}</td>
+                    <td>{{ ucfirst($event->stage_type) }}</td>
+                    <td>{{ ucfirst($event->type) }}</td>
 
-                <!-- Section Filter (Junior / Senior / General) -->
-                <div class="col-md-3">
-                    <label class="form-label">Section</label>
-                    <select name="section" class="form-control">
-                        <option value="">All Sections</option>
-                        <option value="junior" {{ request('section') == 'junior' ? 'selected' : '' }}>Junior</option>
-                        <option value="senior" {{ request('section') == 'senior' ? 'selected' : '' }}>Senior</option>
-                        <option value="general" {{ request('section') == 'general' ? 'selected' : '' }}>General</option>
-                    </select>
-                </div>
+                    <td>
+                        <a href="{{ route('results.event', $event->id) }}"
+                           class="btn btn-info btn-sm">View</a>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
 
-                <!-- Category Filter -->
-                <div class="col-md-3">
-                    <label class="form-label">Category</label>
-                    <select name="category" class="form-control">
-                        <option value="">All Categories</option>
-                        <option value="A" {{ request('category') == 'A' ? 'selected' : '' }}>A</option>
-                        <option value="B" {{ request('category') == 'B' ? 'selected' : '' }}>B</option>
-                        <option value="C" {{ request('category') == 'C' ? 'selected' : '' }}>C</option>
-                        <option value="D" {{ request('category') == 'D' ? 'selected' : '' }}>D</option>
-                    </select>
-                </div>
-
-                <!-- FILTER BUTTON -->
-                <div class="col-md-2 d-flex align-items-end">
-                    <button class="btn btn-dark w-100">Filter</button>
-                </div>
-
-            </div>
-        </form>
-
-        <!-- EVENTS LIST -->
-        <div class="list-group">
-            @forelse($events as $event)
-                <a href="{{ route('results.event', $event->id) }}" 
-                   class="list-group-item list-group-item-action">
-
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <strong>{{ $event->name }}</strong>
-                            <br>
-                            <small>
-                                Section: {{ ucfirst($event->section) }} | 
-                                Category: {{ $event->category }} | 
-                                Type: {{ ucfirst($event->type) }} | 
-                                {{ ucfirst($event->stage_type) }}
-                            </small>
-                        </div>
-
-                        <span class="badge bg-primary align-self-center">View Result</span>
-                    </div>
-
-                </a>
-            @empty
-                <div class="alert alert-warning text-center mt-3">
-                    No events found for the selected filter.
-                </div>
-            @endforelse
-        </div>
+        </table>
 
     </div>
 </div>

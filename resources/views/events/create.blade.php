@@ -23,10 +23,10 @@
 
                 <div class="col">
                     <label class="form-label">Section</label>
-                    <select name="section" class="form-control" required>
+                    <select id="sectionSelect" name="section" class="form-control" required>
                         <option value="junior">Junior</option>
                         <option value="senior">Senior</option>
-                        <option value="general">General</option> <!-- NEW -->
+                        <option value="general">General (Open)</option>
                     </select>
                 </div>
 
@@ -41,15 +41,14 @@
                 </div>
             </div>
 
-            <!-- TYPE + STAGE OPTION -->
+            <!-- EVENT TYPE (HIDDEN WHEN GENERAL IS SELECTED) -->
             <div class="row mb-3">
 
-                <div class="col">
+                <div class="col" id="typeBox">
                     <label class="form-label">Event Type</label>
-                    <select name="type" class="form-control" required>
+                    <select name="type" id="typeSelect" class="form-control" required>
                         <option value="individual">Individual</option>
                         <option value="group">Group</option>
-                        <option value="general">General</option> <!-- Already Here -->
                     </select>
                 </div>
 
@@ -63,11 +62,31 @@
 
             </div>
 
+            <input type="hidden" id="forcedType" name="forced_type">
+
             <button class="btn btn-success px-4">Save Event</button>
 
         </form>
 
     </div>
 </div>
+
+<script>
+document.getElementById('sectionSelect').addEventListener('change', function () {
+    let section = this.value;
+
+    let typeBox = document.getElementById('typeBox');
+    let typeSelect = document.getElementById('typeSelect');
+    let forcedType = document.getElementById('forcedType');
+
+    if (section === "general") {
+        typeBox.style.display = "none";
+        forcedType.value = "group";
+    } else {
+        typeBox.style.display = "block";
+        forcedType.value = "";
+    }
+});
+</script>
 
 @endsection

@@ -2,58 +2,53 @@
 
 @section('content')
 
-<div class="card">
-    <div class="card-header">
-        <h4>Participant Summary</h4>
+<div class="card w-75 mx-auto">
+
+    <div class="card-header text-center">
+        <h3 class="fw-bold">Participant Summary</h3>
+        <p class="mb-0">Chest No: <strong>{{ $participant->chest_no }}</strong></p>
+        <p class="mb-0">Name: <strong>{{ $participant->name }}</strong></p>
+        <p class="mb-0">Team: <strong>{{ $participant->team }}</strong></p>
     </div>
 
     <div class="card-body">
 
-        <div class="alert alert-info">
-            <h5><strong>Performance Summary (10 Mark System)</strong></h5>
+        <h5>Total Events: <strong>{{ $totalEvents }}</strong></h5>
+        <h5>Total Marks: <strong>{{ $totalMarks }}</strong></h5>
+        <h5>Percentage: <strong>{{ $percentage }}%</strong></h5>
+        <h5>Total Points (Rank + Grade): <strong>{{ $totalPoints }}</strong></h5>
 
-            <p>
-                Chest No: <strong>{{ $chest_no }}</strong><br>
-                Total Scored Marks: <strong>{{ $totalScored }}</strong><br>
-                Total Possible Marks: <strong>{{ $totalPossible }}</strong><br>
-                Percentage: 
-                <strong>{{ number_format($percentage, 2) }}%</strong>
-            </p>
-        </div>
+        <hr>
 
-        <h5 class="mt-4 mb-2">Event Details</h5>
+        <h4 class="mt-4 mb-3">Event-wise Performance</h4>
 
-        <table class="table table-bordered">
-            <thead>
+        <table class="table table-bordered text-center">
+            <thead class="table-dark">
                 <tr>
-                    <th>#</th>
                     <th>Event</th>
-                    <th>Stage/Offstage</th>
                     <th>Mark</th>
+                    <th>Grade</th>
+                    <th>Rank</th>
+                    <th>Points</th>
                 </tr>
             </thead>
 
             <tbody>
-                @foreach($records as $rec)
-                    @php 
-                        $score = \App\Models\Score::where('participant_id', $rec->id)->first();
-                    @endphp
-
-                    <tr>
-                        <td>{{ $loop->iteration }}</td>
-                        <td>{{ $rec->event->name }}</td>
-                        <td>{{ ucfirst($rec->event->stage_type) }}</td>
-                        <td>
-                            @if($score)
-                                {{ $score->mark }} / 10
-                            @else
-                                <span class="text-muted">Not Entered</span>
-                            @endif
-                        </td>
-                    </tr>
-                @endforeach
+            @foreach($scores as $s)
+                <tr>
+                    <td>{{ $s->event->name }}</td>
+                    <td>{{ $s->mark }}</td>
+                    <td>{{ $s->grade }}</td>
+                    <td>
+                        @if($s->rank == 1) 🥇 1st
+                        @elseif($s->rank == 2) 🥈 2nd
+                        @elseif($s->rank == 3) 🥉 3rd
+                        @else — @endif
+                    </td>
+                    <td><strong>{{ $s->points }}</strong></td>
+                </tr>
+            @endforeach
             </tbody>
-
         </table>
 
     </div>

@@ -24,125 +24,54 @@
         @endif
 
         @php
-            // Group by chest number (unique participant)
+            // Group by chest number
             $grouped = $participants->groupBy('chest_no');
 
-            // Separate teams
+            // Split teams
             $thuras = $grouped->filter(fn($g) => $g->first()->team === 'Thuras');
             $aqeeda = $grouped->filter(fn($g) => $g->first()->team === 'Aqeeda');
+
+            // Helper: filter by section only (NO stage/offstage filter)
+            function filterBySection($collection, $section) {
+                return $collection->filter(function($group) use ($section) {
+                    return $group->first()->event->section === $section;
+                });
+            }
         @endphp
 
 
-        <!-- ========================= -->
-        <!--        THURAS TABLE       -->
-        <!-- ========================= -->
-        <h3 class="mt-3 mb-3 text-primary fw-bold">THURAS TEAM</h3>
+        <!-- ========================================================= -->
+        <!--                         THURAS TEAM                        -->
+        <!-- ========================================================= -->
+        <h2 class="text-primary fw-bold mt-4 mb-3">THURAS TEAM</h2>
 
-        <table class="table table-bordered table-striped">
-            <thead class="table-primary">
-                <tr>
-                    <th>#</th>
-                    <th>Name</th>
-                    <th>Chest No</th>
-                    <th>Programs (with Stage/Offstage)</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
+        @php
+            $t_junior  = filterBySection($thuras, 'junior');
+            $t_senior  = filterBySection($thuras, 'senior');
+            $t_general = filterBySection($thuras, 'general');
+        @endphp
 
-            <tbody>
-                @php $i = 1; @endphp
-
-                @forelse($thuras as $chest => $group)
-                    @php $first = $group->first(); @endphp
-
-                    <tr>
-                        <td>{{ $i++ }}</td>
-                        <td>{{ $first->name }}</td>
-                        <td>{{ $first->chest_no }}</td>
-
-                        <td>
-                            <ul class="mb-0">
-                                @foreach($group as $p)
-                                <li>
-                                    {{ $p->event->name }}
-                                    <span class="badge bg-dark ms-2">
-                                        {{ ucfirst($p->event->stage_type) }}
-                                    </span>
-                                </li>
-                                @endforeach
-                            </ul>
-                        </td>
-
-                        <td>
-                            <a href="{{ route('participant.summary', $first->chest_no) }}" 
-                               class="btn btn-info btn-sm">
-                                Summary
-                            </a>
-                        </td>
-                    </tr>
-
-                @empty
-                    <tr><td colspan="5" class="text-center">No Thuras participants yet.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+        @include('participants.part_table', ['title' => 'Junior',  'data' => $t_junior])
+        @include('participants.part_table', ['title' => 'Senior',  'data' => $t_senior])
+        @include('participants.part_table', ['title' => 'General', 'data' => $t_general])
 
 
 
 
-        <!-- ========================= -->
-        <!--        AQEEDA TABLE       -->
-        <!-- ========================= -->
-        <h3 class="mt-5 mb-3 text-success fw-bold">AQEEDA TEAM</h3>
+        <!-- ========================================================= -->
+        <!--                         AQEEDA TEAM                       -->
+        <!-- ========================================================= -->
+        <h2 class="text-success fw-bold mt-5 mb-3">AQEEDA TEAM</h2>
 
-        <table class="table table-bordered table-striped">
-            <thead class="table-success">
-                <tr>
-                    <th>#</th>
-                    <th>Name</th>
-                    <th>Chest No</th>
-                    <th>Programs (with Stage/Offstage)</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
+        @php
+            $a_junior  = filterBySection($aqeeda, 'junior');
+            $a_senior  = filterBySection($aqeeda, 'senior');
+            $a_general = filterBySection($aqeeda, 'general');
+        @endphp
 
-            <tbody>
-                @php $j = 1; @endphp
-
-                @forelse($aqeeda as $chest => $group)
-                    @php $first = $group->first(); @endphp
-
-                    <tr>
-                        <td>{{ $j++ }}</td>
-                        <td>{{ $first->name }}</td>
-                        <td>{{ $first->chest_no }}</td>
-
-                        <td>
-                            <ul class="mb-0">
-                                @foreach($group as $p)
-                                <li>
-                                    {{ $p->event->name }}
-                                    <span class="badge bg-dark ms-2">
-                                        {{ ucfirst($p->event->stage_type) }}
-                                    </span>
-                                </li>
-                                @endforeach
-                            </ul>
-                        </td>
-
-                        <td>
-                            <a href="{{ route('participant.summary', $first->chest_no) }}" 
-                               class="btn btn-info btn-sm">
-                                Summary
-                            </a>
-                        </td>
-                    </tr>
-
-                @empty
-                    <tr><td colspan="5" class="text-center">No Aqeeda participants yet.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+        @include('participants.part_table', ['title' => 'Junior',  'data' => $a_junior])
+        @include('participants.part_table', ['title' => 'Senior',  'data' => $a_senior])
+        @include('participants.part_table', ['title' => 'General', 'data' => $a_general])
 
     </div>
 </div>

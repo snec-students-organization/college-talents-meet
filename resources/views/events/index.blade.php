@@ -12,49 +12,107 @@
 
     <div class="card-body">
 
-        <!-- FILTER FORM -->
-        <form method="GET" class="mb-3">
-            <div class="row">
-                <div class="col-md-3">
-                    <select name="stage_type" class="form-control">
-                        <option value="">All (Stage + Offstage)</option>
-                        <option value="stage" {{ request('stage_type') == 'stage' ? 'selected' : '' }}>Stage</option>
-                        <option value="offstage" {{ request('stage_type') == 'offstage' ? 'selected' : '' }}>Offstage</option>
-                    </select>
-                </div>
+        @if(session('success'))
+            <div class="alert alert-success">{{ session('success') }}</div>
+        @endif
 
-                <div class="col-md-2">
-                    <button class="btn btn-dark">Filter</button>
-                </div>
-            </div>
-        </form>
+        @php
+            // Group events by section & stage
+            $junior_stage     = $events->where('section', 'junior')->where('stage_type', 'stage');
+            $junior_offstage  = $events->where('section', 'junior')->where('stage_type', 'offstage');
 
-        <!-- EVENTS TABLE -->
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Event Name</th>
-                    <th>Section</th>
-                    <th>Category</th>
-                    <th>Type</th>
-                    <th>Stage Type</th>
-                </tr>
-            </thead>
+            $senior_stage     = $events->where('section', 'senior')->where('stage_type', 'stage');
+            $senior_offstage  = $events->where('section', 'senior')->where('stage_type', 'offstage');
 
-            <tbody>
-                @foreach($events as $event)
-                <tr>
-                    <td>{{ $loop->iteration }}</td>
-                    <td>{{ $event->name }}</td>
-                    <td>{{ ucfirst($event->section) }}</td>
-                    <td>{{ $event->category }}</td>
-                    <td>{{ ucfirst($event->type) }}</td>
-                    <td>{{ ucfirst($event->stage_type) }}</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
+            $general_events   = $events->where('section', 'general');
+        @endphp
+
+
+        <!-- ========================= -->
+        <!--     TABLE COMPONENT       -->
+        <!-- ========================= -->
+        @php
+            function eventTable($title, $data) {
+                if ($data->count() == 0) {
+                    echo "<h5 class='mt-4'>$title</h5><p class='text-muted'>No events available.</p>";
+                    return;
+                }
+                
+                echo "
+                <h5 class='mt-4 fw-bold'>$title</h5>
+                <table class='table table-bordered table-striped'>
+                    <thead class='table-dark'>
+                        <tr>
+                            <th>#</th>
+                            <th>Event Name</th>
+                            <th>Section</th>
+                            <th>Category</th>
+                            <th>Type</th>
+                            <th>Stage</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>";
+                
+                $i = 1;
+                foreach ($data as $event) {
+                    echo "
+                        <tr>
+                            <td>{$i}</td>
+                            <td>{$event->name}</td>
+                            <td>" . ucfirst($event->section) . "</td>
+                            <td>{$event->category}</td>
+                            <td>" . ucfirst($event->type) . "</td>
+                            <td>" . ucfirst($event->stage_type) . "</td>
+                            <td>
+                                <a href='" . route('events.edit', $event->id) . "' class='btn btn-warning btn-sm'>Edit</a>
+
+                                <form action='" . route('events.destroy', $event->id) . "' method='POST' class='d-inline'>
+                                    " . csrf_field() . method_field('DELETE') . "
+                                    <button class='btn btn-danger btn-sm'
+                                            onclick='return confirm(\"Delete this event?\")'>
+                                        Delete
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    ";
+                    $i++;
+                }
+
+                echo "</tbody></table>";
+            }
+        @endphp
+
+
+
+        <!-- ========================= -->
+        <!--        JUNIOR EVENTS      -->
+        <!-- ========================= -->
+        <h3 class="text-primary fw-bold mt-4">JUNIOR SECTION</h3>
+
+        {{ eventTable('Stage Events', $junior_stage) }}
+        {{ eventTable('Offstage Events', $junior_offstage) }}
+
+
+
+        <!-- ========================= -->
+        <!--        SENIOR EVENTS      -->
+        <!-- ========================= -->
+        <h3 class="text-success fw-bold mt-4">SENIOR SECTION</h3>
+
+        {{ eventTable('Stage Events', $senior_stage) }}
+        {{ eventTable('Offstage Events', $senior_offstage) }}
+
+
+
+        <!-- ========================= -->
+        <!--        GENERAL EVENTS     -->
+        <!-- ========================= -->
+        <h3 class="text-warning fw-bold mt-4">GENERAL EVENTS</h3>
+
+        {{ eventTable('All General Events', $general_events) }}
+
 
     </div>
 </div>
