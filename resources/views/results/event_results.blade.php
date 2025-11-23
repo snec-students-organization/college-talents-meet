@@ -17,170 +17,138 @@
         </a>
 
         @php
-            $isGroupEvent = ($event->type === 'group');
-            $isGeneral    = ($event->section === 'general');
+            // Individual event = event.type = "individual" AND section != "general"
+            $isGroupLike = ($event->type === 'group' || $event->section === 'general');
         @endphp
 
-        {{-- ====================================================== --}}
-        {{--       GENERAL EVENTS → SHOW AS INDIVIDUAL ROWS         --}}
-        {{-- ====================================================== --}}
-        @if($isGeneral)
 
-            <table class="table table-bordered table-striped text-center">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Rank</th>
-                        <th>Chest No</th>
-                        <th>Participant</th>
-                        <th>Team</th>
-                        <th>Mark</th>
-                        <th>Grade</th>
-                        <th>Points</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    @foreach($participants as $p)
-                        @php $score = $p->score; @endphp
-
-                        <tr>
-                            <td>
-                                @if(optional($score)->rank == 1) 🥇 1st
-                                @elseif(optional($score)->rank == 2) 🥈 2nd
-                                @elseif(optional($score)->rank == 3) 🥉 3rd
-                                @else —
-                                @endif
-                            </td>
-
-                            <td>{{ $p->chest_no }}</td>
-                            <td>{{ $p->name }}</td>
-
-                            <td>
-                                <span class="badge {{ $p->team == 'Thuras' ? 'bg-primary' : 'bg-success' }}">
-                                    {{ $p->team }}
-                                </span>
-                            </td>
-
-                            <td>{{ optional($score)->mark ?? '-' }}</td>
-                            <td>{{ optional($score)->grade ?? '-' }}</td>
-                            <td><strong>{{ optional($score)->points ?? 0 }}</strong></td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-
-            @php return; @endphp
-
-        @endif
-
-
-
-        {{-- ====================================================== --}}
-        {{--                 INDIVIDUAL EVENTS                     --}}
-        {{-- ====================================================== --}}
-        @if(!$isGroupEvent)
-
-            <table class="table table-bordered table-striped text-center">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Rank</th>
-                        <th>Chest No</th>
-                        <th>Participant</th>
-                        <th>Team</th>
-                        <th>Mark</th>
-                        <th>Grade</th>
-                        <th>Points</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    @foreach($participants as $p)
-                        @php $score = $p->score; @endphp
-
-                        <tr>
-                            <td>
-                                @if(optional($score)->rank == 1) 🥇 1st
-                                @elseif(optional($score)->rank == 2) 🥈 2nd
-                                @elseif(optional($score)->rank == 3) 🥉 3rd
-                                @else —
-                                @endif
-                            </td>
-
-                            <td>{{ $p->chest_no }}</td>
-                            <td>{{ $p->name }}</td>
-                            <td>{{ $p->team }}</td>
-                            <td>{{ optional($score)->mark ?? '-' }}</td>
-                            <td>{{ optional($score)->grade ?? '-' }}</td>
-                            <td><strong>{{ optional($score)->points ?? 0 }}</strong></td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-
-        @else
-
-
-
-        {{-- ====================================================== --}}
-        {{--                    GROUP EVENTS                       --}}
-        {{-- ====================================================== --}}
-        @php
-            $groups = $participants->groupBy('group_id');
-        @endphp
-
-        <table class="table table-bordered table-striped text-center">
+        {{-- ========================================================= --}}
+        {{--   STANDARD TABLE STRUCTURE FOR ALL EVENTS (Unified)       --}}
+        {{-- ========================================================= --}}
+        <table class="table table-bordered table-striped text-center align-middle">
             <thead class="table-dark">
                 <tr>
-                    <th>Rank</th>
-                    <th>Group</th>
-                    <th>Teams Involved</th>
+                    <th style="width: 80px;">Rank</th>
+                    <th style="width: 200px;">Group / Participant</th>
+                    <th style="width: 120px;">Team</th>
                     <th>Members</th>
-                    <th>Mark</th>
-                    <th>Grade</th>
-                    <th>Points</th>
+                    <th style="width: 100px;">Mark</th>
+                    <th style="width: 100px;">Grade</th>
+                    <th style="width: 100px;">Points</th>
                 </tr>
             </thead>
 
             <tbody>
 
-            @foreach($groups as $gid => $group)
+            {{-- ========================================================= --}}
+            {{--                 GROUP + GENERAL EVENTS                    --}}
+            {{-- ========================================================= --}}
+            @if($isGroupLike)
 
                 @php
-                    $first = $group->first();
-                    $score = $first->score;
-                    $teamList = $group->pluck('team')->unique()->join(', ');
+                    // Group by TEAM + GROUP NAME
+                    $groups = $participants->groupBy(function($p){
+                        return $p->team . '__' . ($p->group_name ?: 'General Group');
+                    });
                 @endphp
 
-                <tr>
-                    <td>
-                        @if(optional($score)->rank == 1) 🥇 1st
-                        @elseif(optional($score)->rank == 2) 🥈 2nd
-                        @elseif(optional($score)->rank == 3) 🥉 3rd
-                        @else —
-                        @endif
-                    </td>
+                @foreach($groups as $key => $group)
+                    @php
+                        [$teamName, $groupName] = explode('__', $key);
+                        $score = $group->first()->score;
+                    @endphp
 
-                    <td class="fw-bold">Group {{ $gid }}</td>
+                    <tr>
 
-                    <td><strong>{{ $teamList }}</strong></td>
+                        {{-- RANK --}}
+                        <td>
+                            @if(optional($score)->rank == 1) 🥇 1st
+                            @elseif(optional($score)->rank == 2) 🥈 2nd
+                            @elseif(optional($score)->rank == 3) 🥉 3rd
+                            @else —
+                            @endif
+                        </td>
 
-                    <td class="text-start">
-                        @foreach($group as $m)
-                            • {{ $m->name }} ({{ $m->chest_no }}) <br>
-                        @endforeach
-                    </td>
+                        {{-- GROUP NAME --}}
+                        <td class="fw-bold">{{ $groupName }}</td>
 
-                    <td>{{ optional($score)->mark ?? '-' }}</td>
-                    <td>{{ optional($score)->grade ?? '-' }}</td>
-                    <td><strong>{{ optional($score)->points ?? 0 }}</strong></td>
-                </tr>
+                        {{-- TEAM --}}
+                        <td>
+                            <span class="badge {{ $teamName == 'Thuras' ? 'bg-primary' : 'bg-success' }}">
+                                {{ $teamName }}
+                            </span>
+                        </td>
 
-            @endforeach
+                        {{-- MEMBERS --}}
+                        <td class="text-start">
+                            @foreach($group as $m)
+                                • {{ $m->name }} ({{ $m->chest_no }}) <br>
+                            @endforeach
+                        </td>
+
+                        {{-- MARK --}}
+                        <td>{{ optional($score)->mark ?? '-' }}</td>
+
+                        {{-- GRADE --}}
+                        <td>{{ optional($score)->grade ?? '-' }}</td>
+
+                        {{-- POINTS --}}
+                        <td><strong>{{ optional($score)->points ?? 0 }}</strong></td>
+                    </tr>
+                @endforeach
+
+
+            {{-- ========================================================= --}}
+            {{--                    INDIVIDUAL EVENTS                     --}}
+            {{-- ========================================================= --}}
+            @else
+
+                @foreach($participants as $p)
+                    @php $score = $p->score; @endphp
+
+                    <tr>
+
+                        {{-- RANK --}}
+                        <td>
+                            @if(optional($score)->rank == 1) 🥇 1st
+                            @elseif(optional($score)->rank == 2) 🥈 2nd
+                            @elseif(optional($score)->rank == 3) 🥉 3rd
+                            @else —
+                            @endif
+                        </td>
+
+                        {{-- ONLY PARTICIPANT NAME (NO GROUP NAME HERE) --}}
+                        <td class="fw-bold">{{ $p->name }}</td>
+
+                        {{-- TEAM --}}
+                        <td>
+                            <span class="badge {{ $p->team == 'Thuras' ? 'bg-primary' : 'bg-success' }}">
+                                {{ $p->team }}
+                            </span>
+                        </td>
+
+                        {{-- MEMBERS → only the individual --}}
+                        <td class="text-start">
+                            • {{ $p->name }} ({{ $p->chest_no }})
+                        </td>
+
+                        {{-- MARK --}}
+                        <td>{{ optional($score)->mark ?? '-' }}</td>
+
+                        {{-- GRADE --}}
+                        <td>{{ optional($score)->grade ?? '-' }}</td>
+
+                        {{-- POINTS --}}
+                        <td><strong>{{ optional($score)->points ?? 0 }}</strong></td>
+
+                    </tr>
+
+                @endforeach
+
+            @endif
 
             </tbody>
         </table>
-
-        @endif
 
     </div>
 </div>

@@ -4,53 +4,58 @@
 
 <div class="container">
 
+    {{-- --------------------------------------------- --}}
+    {{--                HEADER TITLE                   --}}
+    {{-- --------------------------------------------- --}}
     <div class="text-center mb-4">
         <h2 class="fw-bold">College Fest Result System</h2>
         <p class="text-muted">Manage Events, Participants, Marks & Final Scores</p>
     </div>
 
-    {{-- TOP MENU --}}
+    {{-- --------------------------------------------- --}}
+    {{--                TOP MENU CARDS                 --}}
+    {{-- --------------------------------------------- --}}
     <div class="row mb-4">
 
         <div class="col-md-3 mb-3">
-            <a href="/events" class="text-decoration-none">
+            <a href="{{ route('events.index') }}" class="text-decoration-none">
                 <div class="card shadow-sm border-left-primary h-100">
                     <div class="card-body text-center">
                         <h5 class="card-title">Events</h5>
-                        <p class="text-muted">Add & Manage Events</p>
+                        <p class="text-muted m-0">Add & Manage Events</p>
                     </div>
                 </div>
             </a>
         </div>
 
         <div class="col-md-3 mb-3">
-            <a href="/participants" class="text-decoration-none">
+            <a href="{{ route('participants.index') }}" class="text-decoration-none">
                 <div class="card shadow-sm border-left-success h-100">
                     <div class="card-body text-center">
                         <h5 class="card-title">Participants</h5>
-                        <p class="text-muted">Manage Participants</p>
+                        <p class="text-muted m-0">Manage Participants</p>
                     </div>
                 </div>
             </a>
         </div>
 
         <div class="col-md-3 mb-3">
-            <a href="/scores" class="text-decoration-none">
+            <a href="{{ route('scores.index') }}" class="text-decoration-none">
                 <div class="card shadow-sm border-left-warning h-100">
                     <div class="card-body text-center">
                         <h5 class="card-title">Mark Entry</h5>
-                        <p class="text-muted">Enter Marks & Grades</p>
+                        <p class="text-muted m-0">Enter Marks & Grades</p>
                     </div>
                 </div>
             </a>
         </div>
 
         <div class="col-md-3 mb-3">
-            <a href="/results" class="text-decoration-none">
+            <a href="{{ route('results.index') }}" class="text-decoration-none">
                 <div class="card shadow-sm border-left-danger h-100">
                     <div class="card-body text-center">
                         <h5 class="card-title">Final Results</h5>
-                        <p class="text-muted">View Rank & Team Scores</p>
+                        <p class="text-muted m-0">View Rankings & Scores</p>
                     </div>
                 </div>
             </a>
@@ -58,14 +63,21 @@
 
     </div>
 
-    {{-- EXTRA BUTTONS --}}
+    {{-- --------------------------------------------- --}}
+    {{--                 EXTRA BUTTONS                 --}}
+    {{-- --------------------------------------------- --}}
     <div class="row mb-4">
+
         <div class="col-md-4 mb-3">
-            <a href="/matrix-results" class="btn btn-outline-primary w-100 py-3 fw-bold">📊 Matrix Results</a>
+            <a href="{{ route('results.matrix') }}" class="btn btn-outline-primary w-100 py-3 fw-bold">
+                📊 Matrix Results
+            </a>
         </div>
 
         <div class="col-md-4 mb-3">
-            <a href="/chest-summary" class="btn btn-outline-info w-100 py-3 fw-bold">🔍 Chest Summary</a>
+            <a href="{{ route('chest.summary') }}" class="btn btn-outline-info w-100 py-3 fw-bold">
+                🔍 Chest Summary
+            </a>
         </div>
 
         <div class="col-md-4 mb-3">
@@ -73,17 +85,19 @@
                 🔐 Change Password
             </a>
         </div>
+
     </div>
 
-
-    {{-- TEAM SCORES --}}
+    {{-- --------------------------------------------- --}}
+    {{--               TEAM SCORES DISPLAY             --}}
+    {{-- --------------------------------------------- --}}
     <div class="row mt-4">
 
         <div class="col-md-6 mb-3">
             <div class="card bg-primary text-white shadow-sm">
                 <div class="card-body text-center">
-                    <h4>Thuras</h4>
-                    <h1 class="fw-bold">{{ $thurasScore }}</h1>
+                    <h4 class="m-0">Thuras</h4>
+                    <h1 class="fw-bold display-4">{{ $thurasScore }}</h1>
                     <p>Total Points</p>
                 </div>
             </div>
@@ -92,8 +106,8 @@
         <div class="col-md-6 mb-3">
             <div class="card bg-success text-white shadow-sm">
                 <div class="card-body text-center">
-                    <h4>Aqeeda</h4>
-                    <h1 class="fw-bold">{{ $aqeedaScore }}</h1>
+                    <h4 class="m-0">Aqeeda</h4>
+                    <h1 class="fw-bold display-4">{{ $aqeedaScore }}</h1>
                     <p>Total Points</p>
                 </div>
             </div>

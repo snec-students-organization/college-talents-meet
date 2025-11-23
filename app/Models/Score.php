@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,29 +10,38 @@ class Score extends Model
     use HasFactory;
 
     protected $fillable = [
+    'event_id',
+    'team',
     'participant_id',
+    'group_name',
     'mark',
     'grade',
     'rank',
-    'points'
+    'points',
 ];
 
 
+    // ============================================================
+    // RELATIONSHIPS
+    // ============================================================
+
+    // For individual score
     public function participant()
-{
-    return $this->belongsTo(Participant::class);
-}
+    {
+        return $this->belongsTo(Participant::class, 'participant_id');
+    }
 
-public function event()
-{
-    return $this->hasOneThrough(
-        Event::class,
-        Participant::class,
-        'id',        // participant PK
-        'id',        // event PK
-        'participant_id', // FK in scores
-        'event_id'        // FK in participants
-    );
-}
+    // Group score may not have participant_id
+    public function groupMembers()
+    {
+        return Participant::where('group_id', $this->group_id)
+            ->where('event_id', $this->event_id)
+            ->get();
+    }
 
+    // Correct event relation
+    public function event()
+    {
+        return $this->belongsTo(Event::class, 'event_id');
+    }
 }

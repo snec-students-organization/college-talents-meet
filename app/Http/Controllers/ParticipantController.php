@@ -33,53 +33,54 @@ class ParticipantController extends Controller
     // ---------------------------------------------------------
     // STORE PARTICIPANTS
     // ---------------------------------------------------------
-    public function store(Request $request)
-    {
-        $event = Event::findOrFail($request->event_id);
+   public function store(Request $request)
+{
+    $event = Event::findOrFail($request->event_id);
 
-        // =====================================================
-        // GROUP EVENT
-        // =====================================================
-        if ($event->type === 'group') {
+    // GROUP / GENERAL EVENT
+    if ($event->type == 'group' || $event->section == 'general') {
 
-            if (!isset($request->members) || count($request->members) == 0) {
-                return back()->with('error', 'Please select at least one group member');
-            }
+        // User enters group name manually
+        $groupName = trim($request->group_name);
 
-            $nextGroupId = (Participant::max('group_id') ?? 0) + 1;
-
-            foreach ($request->members as $fixedId) {
-
-                $fp = FixedParticipant::find($fixedId);
-                if (!$fp) continue;
-
-                Participant::create([
-                    'name'      => $fp->name,
-                    'team'      => $fp->team,
-                    'chest_no'  => $fp->chest_no,
-                    'event_id'  => $event->id,
-                    'group_id'  => $nextGroupId,
-                ]);
-            }
-
-            return redirect()->route('participants.index')
-                ->with('success', 'Group participants added successfully');
+        if (!$groupName) {
+            return back()->with('error', 'Please enter a Group Name!');
         }
 
-        // =====================================================
-        // INDIVIDUAL EVENT
-        // =====================================================
-        Participant::create([
-            'name'      => $request->name,
-            'team'      => $request->team,
-            'chest_no'  => $request->chest_no,
-            'event_id'  => $event->id,
-            'group_id'  => null,
-        ]);
+        if (!$request->members || count($request->members) == 0) {
+            return back()->with('error', 'No members selected!');
+        }
 
-        return redirect()->route('participants.index')
-            ->with('success', 'Participant added successfully');
+        foreach ($request->members as $fixedId) {
+
+            $fixed = FixedParticipant::findOrFail($fixedId);
+
+            Participant::create([
+                'name'       => $fixed->name,
+                'team'       => $fixed->team,
+                'chest_no'   => $fixed->chest_no,
+                'event_id'   => $event->id,
+                'group_name' => $groupName,  // ONLY STORE group_name
+                   // not used
+            ]);
+        }
+
+        return back()->with('success', "Group '$groupName' added successfully.");
     }
+
+    // INDIVIDUAL
+    Participant::create([
+        'name'       => $request->name,
+        'team'       => $request->team,
+        'chest_no'   => $request->chest_no,
+        'event_id'   => $event->id,
+        'group_name' => null,
+    ]);
+
+    return back()->with('success', 'Participant Added');
+}
+
+
 
     // ---------------------------------------------------------
     // DELETE

@@ -101,8 +101,14 @@ Route::get('/matrix-results', [ResultController::class, 'matrixResults'])
 // ------------------------------
 // CHEST SUMMARY
 // ------------------------------
-Route::get('/chest-summary', [ChestSummaryController::class, 'search'])->name('chest.summary.search');
-Route::post('/chest-summary/result', [ChestSummaryController::class, 'result'])->name('chest.summary.result');
+
+
+Route::get('/chest-summary', [ChestSummaryController::class, 'search'])
+    ->name('chest.summary');
+
+Route::post('/chest-summary/result', [ChestSummaryController::class, 'result'])
+    ->name('chest.summary.result');
+
 
 
 // ------------------------------

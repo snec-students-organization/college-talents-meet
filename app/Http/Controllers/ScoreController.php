@@ -10,56 +10,55 @@ use Illuminate\Http\Request;
 class ScoreController extends Controller
 {
     // ================================
-    // 🔵 MARK ENTRY INDEX
+    // SHOW EVENT LIST
     // ================================
     public function index(Request $request)
-    {
-        $events = Event::with('participants.score')->get();
+{
+    $events = Event::query();
 
-        // Filter (optional)
-        if ($request->stage_type) {
-            $events = $events->where('stage_type', $request->stage_type);
-        }
-
-        if ($request->section) {
-            $events = $events->where('section', $request->section);
-        }
-
-        // Completed / Pending indicator
-        foreach ($events as $event) {
-            $total = $event->participants->count();
-            $completed = $event->participants->whereNotNull('score.mark')->count();
-            $event->score_completed = ($total > 0 && $total == $completed);
-        }
-
-        return view('scores.index', compact('events'));
+    // Filter by stage_type
+    if ($request->stage_type) {
+        $events->where('stage_type', $request->stage_type);
     }
 
+    // Filter by section
+    if ($request->section) {
+        $events->where('section', $request->section);
+    }
+
+    // Get filtered (or all) results
+    $events = $events->orderBy('name')->get();
+
+    return view('scores.index', compact('events'));
+}
+
+
     // ================================
-    // 🔵 SHOW PARTICIPANTS
+    // SHOW MARK ENTRY PAGE
     // ================================
     public function showEventParticipants($event_id)
     {
         $event = Event::findOrFail($event_id);
 
-        // General section ALWAYS group type
+        // GENERAL → Always treat as group event
         if ($event->section === "general") {
             $event->type = "group";
         }
 
         $participants = Participant::where('event_id', $event_id)
                                   ->with('score')
+                                  ->orderBy('team')
+                                  ->orderBy('group_name')
                                   ->get();
 
         return view('scores.mark_entry', compact('event', 'participants'));
     }
 
     // ================================
-    // 🔵 SAVE SCORE (DECIDES MODE)
+    // SAVE MARK (ROUTER)
     // ================================
     public function saveMark(Request $request)
     {
-        // is_group is sent from mark_entry.blade.php
         if ($request->is_group == 1) {
             return $this->saveGroupScore($request);
         }
@@ -68,25 +67,27 @@ class ScoreController extends Controller
     }
 
     // ================================
-    // 🔵 SAVE INDIVIDUAL SCORE
+    // SAVE INDIVIDUAL SCORE
     // ================================
     private function saveIndividualScore(Request $request)
     {
         $participant = Participant::with('event')->findOrFail($request->participant_id);
-        $event = $participant->event;
 
-        $rank = $request->rank;
+        $rank  = $request->rank;
         $grade = $request->grade;
 
-        $points = $this->calculatePoints($event->category, $rank, $grade);
+        $points = $this->calculatePoints($participant->event->category, $rank, $grade);
 
         Score::updateOrCreate(
             ['participant_id' => $participant->id],
             [
-                'mark'   => $request->mark,
-                'grade'  => $grade,
-                'rank'   => $rank,
-                'points' => $points,
+                'event_id'      => $participant->event_id,
+                'team'          => $participant->team,
+                'group_name'    => null,
+                'mark'          => $request->mark,
+                'grade'         => $grade,
+                'rank'          => $rank,
+                'points'        => $points,
             ]
         );
 
@@ -94,51 +95,58 @@ class ScoreController extends Controller
     }
 
     // ================================
-    // 🟩 SAVE GROUP SCORE (USING group_id)
+    // SAVE GROUP SCORE
     // ================================
     private function saveGroupScore(Request $request)
     {
-        $event_id = $request->event_id;
-        $group_id = $request->group_id;
+        $event_id  = $request->event_id;
+        $groupName = $request->group_name;
 
+        if (!$groupName) {
+            return back()->with('error', 'Group Name Missing');
+        }
+
+        // Find members based on manual group name
         $members = Participant::where('event_id', $event_id)
-                              ->where('group_id', $group_id)
+                              ->where('group_name', $groupName)
                               ->get();
 
         if ($members->count() == 0) {
-            return back()->with('error', 'No group members found.');
+            return back()->with('error', 'No members found for group: '.$groupName);
         }
-
-        $event = Event::findOrFail($event_id);
 
         $rank  = $request->rank;
         $grade = $request->grade;
 
+        // Calculate points
+        $event = Event::findOrFail($event_id);
         $points = $this->calculatePoints($event->category, $rank, $grade);
 
-        // Delete old scores for this group (avoid duplicates)
+        // Remove old scores for this group
         Score::whereIn('participant_id', $members->pluck('id'))->delete();
 
-        // Save score for ALL group members
+        // Save score for each group member
         foreach ($members as $m) {
             Score::create([
-                'participant_id' => $m->id,
-                'mark'           => $request->mark,
-                'grade'          => $grade,
-                'rank'           => $rank,
-                'points'         => $points,
+                'event_id'      => $event_id,
+                'team'          => $m->team,
+                'participant_id'=> $m->id,
+                'group_name'    => $groupName,
+                'mark'          => $request->mark,
+                'grade'         => $grade,
+                'rank'          => $rank,
+                'points'        => $points,
             ]);
         }
 
-        return back()->with('success', 'Group Score Saved');
+        return back()->with('success', "Score saved for group: $groupName");
     }
 
     // ================================
-    // 🔶 POINT CALCULATION
+    // POINT CALCULATION
     // ================================
     private function calculatePoints($category, $rank, $grade)
     {
-        // Rank points per category
         $rankPointsTable = [
             'A' => [1 => 10, 2 => 7, 3 => 5],
             'B' => [1 => 7,  2 => 5, 3 => 3],
@@ -146,20 +154,18 @@ class ScoreController extends Controller
             'D' => [1 => 20, 2 => 15, 3 => 10],
         ];
 
-        $rankPoints = $rankPointsTable[$category][$rank] ?? 0;
-
-        // Grade points
         $gradePoints = [
             'A+' => 5,
             'A'  => 5,
             'B'  => 3,
             'C'  => 1,
             'D'  => 1,
-            'NG' => 0
+            'NG' => 0,
         ];
 
+        $rp = $rankPointsTable[$category][$rank] ?? 0;
         $gp = $gradePoints[$grade] ?? 0;
 
-        return $rankPoints + $gp;
+        return $rp + $gp;
     }
 }

@@ -9,39 +9,57 @@ use Illuminate\Http\Request;
 class ResultController extends Controller
 {
     public function index(Request $request)
-    {
-        $events = Event::query();
+{
+    $events = Event::query();
 
-        if ($request->stage_type) {
-            $events->where('stage_type', $request->stage_type);
-        }
-
-        $events = $events->get();
-
-        return view('results.index', compact('events'));
+    if ($request->search) {
+        $events->where('name', 'LIKE', '%' . $request->search . '%');
     }
+
+    if ($request->section) {
+        $events->where('section', $request->section);
+    }
+
+    if ($request->category) {
+        $events->where('category', $request->category);
+    }
+
+    if ($request->stage_type) {
+        $events->where('stage_type', $request->stage_type);
+    }
+
+    if ($request->type) {
+        $events->where('type', $request->type);
+    }
+
+    $events = $events->orderBy('name')->get();
+
+    return view('results.index', compact('events'));
+}
+
 
 
     public function showEventResults($eventId)
-    {
-        $event = Event::findOrFail($eventId);
+{
+    $event = Event::findOrFail($eventId);
 
-        $participants = Participant::where('event_id', $eventId)
-            ->leftJoin('scores', 'scores.participant_id', '=', 'participants.id')
-            ->orderByRaw("
-                CASE 
-                    WHEN scores.rank = 1 THEN 1
-                    WHEN scores.rank = 2 THEN 2
-                    WHEN scores.rank = 3 THEN 3
-                    ELSE 4
-                END
-            ")
-            ->select('participants.*')
-            ->with('score')
-            ->get();
+    $participants = Participant::leftJoin('scores', 'scores.participant_id', '=', 'participants.id')
+        ->where('participants.event_id', $eventId) // FIXED HERE
+        ->orderByRaw("
+            CASE 
+                WHEN scores.rank = 1 THEN 1
+                WHEN scores.rank = 2 THEN 2
+                WHEN scores.rank = 3 THEN 3
+                ELSE 4
+            END
+        ")
+        ->select('participants.*')
+        ->with('score')
+        ->get();
 
-        return view('results.event_results', compact('event', 'participants'));
-    }
+    return view('results.event_results', compact('event', 'participants'));
+}
+
 
 
     // ---------------------------
@@ -81,4 +99,5 @@ class ResultController extends Controller
             default => 0,
         };
     }
+    
 }

@@ -9,6 +9,13 @@
 
     <div class="card-body">
 
+        @if(session('error'))
+            <div class="alert alert-danger">{{ session('error') }}</div>
+        @endif
+        @if(session('success'))
+            <div class="alert alert-success">{{ session('success') }}</div>
+        @endif
+
         <form action="{{ route('participants.store') }}" method="POST">
             @csrf
 
@@ -38,9 +45,15 @@
                 </select>
             </div>
 
-            <!-- INDIVIDUAL EVENT SECTION -->
-            <div id="individualSection">
+            <!-- GROUP NAME BOX -->
+            <div id="groupNameBox" class="mb-3" style="display:none;">
+                <label class="form-label">Group Name</label>
+                <input type="text" name="group_name" id="groupNameInput" class="form-control"
+                       placeholder="Eg: A1, B2, DanceTeam">
+            </div>
 
+            <!-- INDIVIDUAL SECTION -->
+            <div id="individualSection">
                 <div id="individualMembers" class="border p-3 mb-2 bg-light"
                      style="max-height:250px; overflow-y:auto; display:none;">
                 </div>
@@ -54,43 +67,40 @@
                     <label class="form-label">Participant Name</label>
                     <input type="text" name="name" id="indName" class="form-control">
                 </div>
-
             </div>
 
-            <!-- GROUP EVENT SECTION -->
+            <!-- GROUP SECTION -->
             <div id="groupSection" style="display:none;">
-
                 <label class="form-label">Select Group Members</label>
 
                 <div id="groupMembers" class="border p-3 bg-light"
                      style="max-height:250px; overflow:auto;">
                 </div>
-
-                <small class="text-muted">Select multiple members</small>
             </div>
 
             <button class="btn btn-success w-100 mt-3">Save</button>
-
         </form>
+
     </div>
 </div>
 
 <script>
-
 let fixedData = @json($fixed);
 
-const eventSelect        = document.getElementById('eventSelect');
-const teamSelect         = document.getElementById('teamSelect');
-const individualSection  = document.getElementById('individualSection');
-const individualMembers  = document.getElementById('individualMembers');
-const groupSection       = document.getElementById('groupSection');
-const groupMembers       = document.getElementById('groupMembers');
+// DOM references
+const eventSelect   = document.getElementById('eventSelect');
+const teamSelect    = document.getElementById('teamSelect');
+const groupNameBox  = document.getElementById('groupNameBox');
+const groupNameInput= document.getElementById('groupNameInput');
+const individualSection = document.getElementById('individualSection');
+const groupSection  = document.getElementById('groupSection');
+const groupMembers  = document.getElementById('groupMembers');
+const individualMembers = document.getElementById('individualMembers');
 
 eventSelect.addEventListener('change', updateUI);
 teamSelect.addEventListener('change', updateUI);
 
 function updateUI() {
-
     if (!eventSelect.value) return;
 
     const selected = eventSelect.selectedOptions[0];
@@ -98,60 +108,36 @@ function updateUI() {
     const section  = selected.dataset.section;
     const team     = teamSelect.value;
 
-    // Reset
-    individualMembers.style.display = "none";
-    groupSection.style.display = "none";
-    individualSection.style.display = "block";
-
-    // ⭐ GENERAL SECTION (UPDATED)
-    if (section === "general") {
-
-        teamSelect.disabled = false;
-
-        if (!team) return; // team must be selected
-
-        // GROUP GENERAL
-        if (type === "group") {
-            groupSection.style.display = "block";
-            individualSection.style.display = "none";
-            loadGroupMembers(team, "ALL");
-            return;
-        }
-
-        // INDIVIDUAL GENERAL
-        individualSection.style.display = "block";
-        loadIndividualMembers(team, "ALL");
-        return;
+    // Show group name only for group/general events
+    if (type === "group" || section === "general") {
+        groupNameBox.style.display = "block";
+    } else {
+        groupNameBox.style.display = "none";
     }
 
-    // ⭐ JUNIOR / SENIOR SECTION
-    teamSelect.disabled = false;
+    // Do NOT CLEAR group_name automatically!
+    // groupNameInput.value = "";  <-- removed
 
-    // GROUP EVENT
-    if (type === "group") {
-
+    // Reset visible sections
+    if (type === "group" || section === "general") {
         groupSection.style.display = "block";
         individualSection.style.display = "none";
 
-        if (!team) return;
-
-        loadGroupMembers(team, section);
+        if (team) loadGroupMembers(team, section);
         return;
     }
 
-    // INDIVIDUAL
-    if (team) {
-        loadIndividualMembers(team, section);
-    }
+    // Individual event
+    groupSection.style.display = "none";
+    individualSection.style.display = "block";
+
+    if (team) loadIndividualMembers(team, section);
 }
 
 function loadGroupMembers(team, section) {
-    groupMembers.innerHTML = '';
-
+    groupMembers.innerHTML = "";
     fixedData.forEach(p => {
-        if ((p.team === team) &&
-            (section === "ALL" || p.section === section)) {
-
+        if (p.team === team && (section === "general" || p.section === section)) {
             groupMembers.innerHTML += `
                 <div class="form-check">
                     <input type="checkbox" name="members[]" value="${p.id}" class="form-check-input">
@@ -163,15 +149,11 @@ function loadGroupMembers(team, section) {
 }
 
 function loadIndividualMembers(team, section) {
-
     individualMembers.style.display = "block";
-    individualMembers.innerHTML = '';
+    individualMembers.innerHTML = "";
 
     fixedData.forEach(p => {
-
-        if ((p.team === team) &&
-            (section === "ALL" || p.section === section)) {
-
+        if (p.team === team && p.section === section) {
             individualMembers.innerHTML += `
                 <div class="form-check">
                     <input type="radio" name="select_individual" value="${p.id}"
@@ -184,12 +166,10 @@ function loadIndividualMembers(team, section) {
     });
 }
 
-// Auto fill
 function fillIndividual(name, chest) {
-    document.getElementById('indName').value  = name;
+    document.getElementById('indName').value = name;
     document.getElementById('indChest').value = chest;
 }
-
 </script>
 
 @endsection
