@@ -2,69 +2,11 @@
 
 @section('content')
 
-@php
-use Illuminate\Support\Facades\DB;
-use App\Models\Score;
-
-/*
-|--------------------------------------------------------------------------
-| TEAM POINT SUMMARY (Individual + Group/General)
-|--------------------------------------------------------------------------
-| ✔ Individual → count normally
-| ✔ Group/General → count ONCE per group (MAX points)
-|--------------------------------------------------------------------------
-*/
-
-// INDIVIDUAL TOTALS
-$individual = Score::whereNull('group_name')
-            ->select('team', DB::raw('SUM(points) as pts'))
-            ->groupBy('team')
-            ->pluck('pts', 'team');
-
-// GROUP/GENERAL TOTALS (count each group once)
-$group = Score::whereNotNull('group_name')
-            ->select('team', 'group_name', 'event_id', DB::raw('MAX(points) as pts'))
-            ->groupBy('team', 'group_name', 'event_id')
-            ->get()
-            ->groupBy('team')
-            ->map(fn($g) => $g->sum('pts'));
-
-$thurasScore = ($individual['Thuras'] ?? 0) + ($group['Thuras'] ?? 0);
-$aqeedaScore = ($individual['Aqeeda'] ?? 0) + ($group['Aqeeda'] ?? 0);
-@endphp
-
-
-{{-- ================================ --}}
-{{--        TEAM SCORE SUMMARY        --}}
-{{-- ================================ --}}
-<div class="row mb-4">
-
-    <div class="col-md-6 mb-3">
-        <div class="card bg-primary text-white shadow-sm">
-            <div class="card-body text-center p-4">
-                <h4 class="m-0">Thuras</h4>
-                <h1 class="fw-bold display-5">{{ $thurasScore }}</h1>
-                <p>Total Points</p>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-6 mb-3">
-        <div class="card bg-success text-white shadow-sm">
-            <div class="card-body text-center p-4">
-                <h4 class="m-0">Aqeeda</h4>
-                <h1 class="fw-bold display-5">{{ $aqeedaScore }}</h1>
-                <p>Total Points</p>
-            </div>
-        </div>
-    </div>
-
-</div>
-
-
-
 <div class="container">
 
+    {{-- ========================= --}}
+    {{--     PAGE HEADING          --}}
+    {{-- ========================= --}}
     <h2 class="fw-bold mb-4 text-center">Matrix Results (All Sections)</h2>
 
     <a href="{{ route('results.index') }}" class="btn btn-secondary mb-3">
@@ -73,12 +15,75 @@ $aqeedaScore = ($individual['Aqeeda'] ?? 0) + ($group['Aqeeda'] ?? 0);
 
 
     {{-- ========================= --}}
-    {{--      FILTER SECTION       --}}
+    {{--   TEAM TOTALS (FIXED)     --}}
+    {{-- ========================= --}}
+    @php
+        use App\Models\Score;
+        use App\Models\Penalty;
+
+        // INDIVIDUAL POINTS
+        $thurasIndividual = Score::where('team', 'Thuras')
+            ->whereNull('group_name')
+            ->sum('points');
+
+        $aqeedaIndividual = Score::where('team', 'Aqeeda')
+            ->whereNull('group_name')
+            ->sum('points');
+
+        // GROUP / GENERAL POINTS (COUNT ONCE PER GROUP)
+        $thurasGroup = Score::where('team', 'Thuras')
+            ->whereNotNull('group_name')
+            ->select('group_name')
+            ->distinct()
+            ->sum('points');
+
+        $aqeedaGroup = Score::where('team', 'Aqeeda')
+            ->whereNotNull('group_name')
+            ->select('group_name')
+            ->distinct()
+            ->sum('points');
+
+        // PENALTIES
+        $penThuras = Penalty::where('team', 'Thuras')->sum('points');
+        $penAqeeda = Penalty::where('team', 'Aqeeda')->sum('points');
+
+        // FINAL TOTAL
+        $thurasScore = $thurasIndividual + $thurasGroup + $penThuras;
+        $aqeedaScore = $aqeedaIndividual + $aqeedaGroup + $penAqeeda;
+    @endphp
+
+    <div class="row mb-4">
+
+        <div class="col-md-6 mb-3">
+            <div class="card bg-primary text-white shadow-sm">
+                <div class="card-body text-center">
+                    <h4>Thuras</h4>
+                    <h1 class="fw-bold">{{ $thurasScore }}</h1>
+                    <p>Total Points (After Penalties)</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <div class="card bg-success text-white shadow-sm">
+                <div class="card-body text-center">
+                    <h4>Aqeeda</h4>
+                    <h1 class="fw-bold">{{ $aqeedaScore }}</h1>
+                    <p>Total Points (After Penalties)</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+
+    {{-- ========================= --}}
+    {{--     FILTER FORM           --}}
     {{-- ========================= --}}
     <form method="GET" class="mb-4">
         <div class="row g-3">
 
-            <!-- SECTION FILTER -->
             <div class="col-md-3">
                 <label class="form-label fw-bold">Section</label>
                 <select name="section" class="form-control">
@@ -89,17 +94,15 @@ $aqeedaScore = ($individual['Aqeeda'] ?? 0) + ($group['Aqeeda'] ?? 0);
                 </select>
             </div>
 
-            <!-- STAGE TYPE FILTER -->
             <div class="col-md-3">
                 <label class="form-label fw-bold">Stage Type</label>
                 <select name="stage_type" class="form-control">
                     <option value="">All Types</option>
-                    <option value="stage"    {{ request('stage_type')=='stage'?'selected':'' }}>Stage</option>
+                    <option value="stage" {{ request('stage_type')=='stage'?'selected':'' }}>Stage</option>
                     <option value="offstage" {{ request('stage_type')=='offstage'?'selected':'' }}>Offstage</option>
                 </select>
             </div>
 
-            <!-- CATEGORY FILTER -->
             <div class="col-md-2">
                 <label class="form-label fw-bold">Category</label>
                 <select name="category" class="form-control">
@@ -111,7 +114,6 @@ $aqeedaScore = ($individual['Aqeeda'] ?? 0) + ($group['Aqeeda'] ?? 0);
                 </select>
             </div>
 
-            <!-- SEARCH -->
             <div class="col-md-3">
                 <label class="form-label fw-bold">Search Event</label>
                 <input type="text" name="search" class="form-control"
@@ -119,7 +121,6 @@ $aqeedaScore = ($individual['Aqeeda'] ?? 0) + ($group['Aqeeda'] ?? 0);
                        value="{{ request('search') }}">
             </div>
 
-            <!-- BUTTON -->
             <div class="col-md-1 d-flex align-items-end">
                 <button class="btn btn-dark w-100">Filter</button>
             </div>
@@ -128,8 +129,9 @@ $aqeedaScore = ($individual['Aqeeda'] ?? 0) + ($group['Aqeeda'] ?? 0);
     </form>
 
 
+
     {{-- ========================= --}}
-    {{--     MATRIX TABLES         --}}
+    {{--     FILTERED EVENTS       --}}
     {{-- ========================= --}}
     @php
         $events = $events->filter(function($e){
@@ -144,6 +146,10 @@ $aqeedaScore = ($individual['Aqeeda'] ?? 0) + ($group['Aqeeda'] ?? 0);
     @endphp
 
 
+
+    {{-- ========================= --}}
+    {{--       EVENT LIST          --}}
+    {{-- ========================= --}}
     @foreach($events as $event)
 
         @php
@@ -151,7 +157,8 @@ $aqeedaScore = ($individual['Aqeeda'] ?? 0) + ($group['Aqeeda'] ?? 0);
         @endphp
 
         <div class="card shadow mb-4">
-            <div class="card-header bg-dark text-white">
+
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
                     {{ $event->name }} —
                     {{ ucfirst($event->section) }} |
@@ -160,6 +167,57 @@ $aqeedaScore = ($individual['Aqeeda'] ?? 0) + ($group['Aqeeda'] ?? 0);
                 </h5>
             </div>
 
+
+            {{-- ========================================= --}}
+            {{--             PENALTY FORM                  --}}
+            {{-- ========================================= --}}
+            <div class="p-3 border-bottom">
+
+                <form action="{{ route('results.penalty.add') }}" method="POST" class="row g-2">
+                    @csrf
+
+                    <input type="hidden" name="event_id" value="{{ $event->id }}">
+
+                    <div class="col-md-3">
+                        <select name="team" class="form-control" required>
+                            <option value="">Select Team</option>
+                            <option value="Thuras">Thuras</option>
+                            <option value="Aqeeda">Aqeeda</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <input type="number" name="points" class="form-control"
+                               placeholder="Penalty (-5)" required>
+                    </div>
+
+                    <div class="col-md-3">
+                        <button class="btn btn-danger w-100">Apply Penalty</button>
+                    </div>
+                </form>
+
+            </div>
+
+
+            {{-- ========================================= --}}
+            {{--             SHOW PENALTIES                --}}
+            {{-- ========================================= --}}
+            @if($event->penalties->count())
+                <div class="alert alert-danger m-3">
+                    <strong>Penalties Applied:</strong><br>
+                    @foreach($event->penalties as $p)
+                        • {{ $p->team }} = {{ $p->points }} points
+                        <small class="text-muted">({{ $p->created_at->format('d M, H:i') }})</small>
+                        <br>
+                    @endforeach
+                </div>
+            @endif
+
+
+
+            {{-- ========================================= --}}
+            {{--          RESULT TABLE                     --}}
+            {{-- ========================================= --}}
             <div class="card-body p-0">
 
                 <table class="table table-bordered table-striped text-center mb-0 align-middle">
@@ -177,7 +235,7 @@ $aqeedaScore = ($individual['Aqeeda'] ?? 0) + ($group['Aqeeda'] ?? 0);
 
                     <tbody>
 
-                    {{-- GROUP + GENERAL --}}
+                    {{-- ========== GROUP / GENERAL ========== --}}
                     @if($isGroupLike)
 
                         @php
@@ -212,9 +270,9 @@ $aqeedaScore = ($individual['Aqeeda'] ?? 0) + ($group['Aqeeda'] ?? 0);
                                 <td>{{ $score->grade ?? '-' }}</td>
 
                                 <td>
-                                    @if(($score->rank ?? '-') == 1) 🥇 1st
-                                    @elseif(($score->rank ?? '-') == 2) 🥈 2nd
-                                    @elseif(($score->rank ?? '-') == 3) 🥉 3rd
+                                    @if($score?->rank == 1) 🥇 1st
+                                    @elseif($score?->rank == 2) 🥈 2nd
+                                    @elseif($score?->rank == 3) 🥉 3rd
                                     @else — @endif
                                 </td>
 
@@ -223,7 +281,7 @@ $aqeedaScore = ($individual['Aqeeda'] ?? 0) + ($group['Aqeeda'] ?? 0);
 
                         @endforeach
 
-                    {{-- INDIVIDUAL --}}
+                    {{-- ========== INDIVIDUAL ========== --}}
                     @else
 
                         @foreach($event->participants as $p)
@@ -246,9 +304,9 @@ $aqeedaScore = ($individual['Aqeeda'] ?? 0) + ($group['Aqeeda'] ?? 0);
                                 <td>{{ $score->grade ?? '-' }}</td>
 
                                 <td>
-                                    @if(($score->rank ?? '-') == 1) 🥇 1st
-                                    @elseif(($score->rank ?? '-') == 2) 🥈 2nd
-                                    @elseif(($score->rank ?? '-') == 3) 🥉 3rd
+                                    @if($score?->rank == 1) 🥇 1st
+                                    @elseif($score?->rank == 2) 🥈 2nd
+                                    @elseif($score?->rank == 3) 🥉 3rd
                                     @else — @endif
                                 </td>
 
@@ -260,9 +318,11 @@ $aqeedaScore = ($individual['Aqeeda'] ?? 0) + ($group['Aqeeda'] ?? 0);
                     @endif
 
                     </tbody>
+
                 </table>
 
             </div>
+
         </div>
 
     @endforeach

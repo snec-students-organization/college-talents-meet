@@ -21,6 +21,12 @@ class Event extends Model
     {
         return $this->hasMany(Participant::class);
     }
+
+    public function penalties()
+{
+    return $this->hasMany(\App\Models\Penalty::class);
+}
+
     public function getScoreCompletedAttribute()
 {
     // total participants in this event

@@ -99,5 +99,22 @@ class ResultController extends Controller
             default => 0,
         };
     }
+    public function addPenalty(Request $request)
+{
+    $request->validate([
+        'event_id' => 'required|integer',
+        'team' => 'required',
+        'points' => 'required|integer'
+    ]);
+
+    \App\Models\Penalty::create([
+        'event_id' => $request->event_id,
+        'team' => $request->team,
+        'points' => -abs($request->points), // always negative
+    ]);
+
+    return back()->with('success', 'Penalty applied successfully.');
+}
+
     
 }

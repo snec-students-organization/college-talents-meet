@@ -119,3 +119,7 @@ Route::get('/participant/summary/{chest_no}',
 
 Route::get('/participants/ranking', 
     [ParticipantController::class, 'ranking'])->name('participants.ranking');
+
+
+    Route::post('/results/penalty/add', [ResultController::class, 'addPenalty'])
+     ->name('results.penalty.add');
