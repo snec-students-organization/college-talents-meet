@@ -2,6 +2,67 @@
 
 @section('content')
 
+@php
+use Illuminate\Support\Facades\DB;
+use App\Models\Score;
+
+/*
+|--------------------------------------------------------------------------
+| TEAM POINT SUMMARY (Individual + Group/General)
+|--------------------------------------------------------------------------
+| ✔ Individual → count normally
+| ✔ Group/General → count ONCE per group (MAX points)
+|--------------------------------------------------------------------------
+*/
+
+// INDIVIDUAL TOTALS
+$individual = Score::whereNull('group_name')
+            ->select('team', DB::raw('SUM(points) as pts'))
+            ->groupBy('team')
+            ->pluck('pts', 'team');
+
+// GROUP/GENERAL TOTALS (count each group once)
+$group = Score::whereNotNull('group_name')
+            ->select('team', 'group_name', 'event_id', DB::raw('MAX(points) as pts'))
+            ->groupBy('team', 'group_name', 'event_id')
+            ->get()
+            ->groupBy('team')
+            ->map(fn($g) => $g->sum('pts'));
+
+$thurasScore = ($individual['Thuras'] ?? 0) + ($group['Thuras'] ?? 0);
+$aqeedaScore = ($individual['Aqeeda'] ?? 0) + ($group['Aqeeda'] ?? 0);
+@endphp
+
+
+{{-- ================================ --}}
+{{--        TEAM SCORE SUMMARY        --}}
+{{-- ================================ --}}
+<div class="row mb-4">
+
+    <div class="col-md-6 mb-3">
+        <div class="card bg-primary text-white shadow-sm">
+            <div class="card-body text-center p-4">
+                <h4 class="m-0">Thuras</h4>
+                <h1 class="fw-bold display-5">{{ $thurasScore }}</h1>
+                <p>Total Points</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="card bg-success text-white shadow-sm">
+            <div class="card-body text-center p-4">
+                <h4 class="m-0">Aqeeda</h4>
+                <h1 class="fw-bold display-5">{{ $aqeedaScore }}</h1>
+                <p>Total Points</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+
 <div class="container">
 
     <h2 class="fw-bold mb-4 text-center">Matrix Results (All Sections)</h2>
@@ -50,7 +111,7 @@
                 </select>
             </div>
 
-            <!-- EVENT NAME SEARCH -->
+            <!-- SEARCH -->
             <div class="col-md-3">
                 <label class="form-label fw-bold">Search Event</label>
                 <input type="text" name="search" class="form-control"
@@ -73,16 +134,9 @@
     @php
         $events = $events->filter(function($e){
 
-            // Filter by section
             if(request('section') && $e->section != request('section')) return false;
-
-            // Filter by stage_type
             if(request('stage_type') && $e->stage_type != request('stage_type')) return false;
-
-            // Filter by category
             if(request('category') && $e->category != request('category')) return false;
-
-            // Filter by event name
             if(request('search') && stripos($e->name, request('search')) === false) return false;
 
             return true;
@@ -123,9 +177,7 @@
 
                     <tbody>
 
-                    {{-- ============================= --}}
-                    {{--    GROUP + GENERAL EVENTS     --}}
-                    {{-- ============================= --}}
+                    {{-- GROUP + GENERAL --}}
                     @if($isGroupLike)
 
                         @php
@@ -156,8 +208,8 @@
                                     @endforeach
                                 </td>
 
-                                <td>{{ $score->mark   ?? '-' }}</td>
-                                <td>{{ $score->grade  ?? '-' }}</td>
+                                <td>{{ $score->mark ?? '-' }}</td>
+                                <td>{{ $score->grade ?? '-' }}</td>
 
                                 <td>
                                     @if(($score->rank ?? '-') == 1) 🥇 1st
@@ -171,20 +223,13 @@
 
                         @endforeach
 
-
-                    {{-- ============================= --}}
-                    {{--        INDIVIDUAL EVENTS       --}}
-                    {{-- ============================= --}}
+                    {{-- INDIVIDUAL --}}
                     @else
 
                         @foreach($event->participants as $p)
-
-                            @php
-                                $score = $p->score;
-                            @endphp
+                            @php $score = $p->score; @endphp
 
                             <tr>
-
                                 <td>
                                     <span class="badge {{ $p->team=='Thuras'?'bg-primary':'bg-success' }}">
                                         {{ $p->team }}
@@ -197,8 +242,8 @@
                                     • {{ $p->name }} ({{ $p->chest_no }})
                                 </td>
 
-                                <td>{{ $score->mark   ?? '-' }}</td>
-                                <td>{{ $score->grade  ?? '-' }}</td>
+                                <td>{{ $score->mark ?? '-' }}</td>
+                                <td>{{ $score->grade ?? '-' }}</td>
 
                                 <td>
                                     @if(($score->rank ?? '-') == 1) 🥇 1st
@@ -208,7 +253,6 @@
                                 </td>
 
                                 <td class="fw-bold">{{ $score->points ?? 0 }}</td>
-
                             </tr>
 
                         @endforeach

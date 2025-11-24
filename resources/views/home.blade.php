@@ -88,32 +88,6 @@
 
     </div>
 
-    {{-- --------------------------------------------- --}}
-    {{--               TEAM SCORES DISPLAY             --}}
-    {{-- --------------------------------------------- --}}
-    <div class="row mt-4">
-
-        <div class="col-md-6 mb-3">
-            <div class="card bg-primary text-white shadow-sm">
-                <div class="card-body text-center">
-                    <h4 class="m-0">Thuras</h4>
-                    <h1 class="fw-bold display-4">{{ $thurasScore }}</h1>
-                    <p>Total Points</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-6 mb-3">
-            <div class="card bg-success text-white shadow-sm">
-                <div class="card-body text-center">
-                    <h4 class="m-0">Aqeeda</h4>
-                    <h1 class="fw-bold display-4">{{ $aqeedaScore }}</h1>
-                    <p>Total Points</p>
-                </div>
-            </div>
-        </div>
-
-    </div>
 
 </div>
 
