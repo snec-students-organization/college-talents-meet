@@ -94,31 +94,86 @@ class ParticipantController extends Controller
     // ---------------------------------------------------------
     // SUMMARY FOR ONE PARTICIPANT
     // ---------------------------------------------------------
-   public function summary($chest_no)
+  public function ranking()
 {
-    // Find participant by chest number
+    // 1️⃣ Load fixed participant list
+    $fixed = \DB::table('fixed_participants')->get();
+
+    // 2️⃣ Load only INDIVIDUAL event scores (group_name = null)
+    $allScores = Participant::whereNotNull('chest_no')
+        ->join('scores', 'participants.id', '=', 'scores.participant_id')
+        ->whereNull('scores.group_name') // only individual events
+        ->select(
+            'participants.*',
+            'scores.mark',
+            'scores.points',
+            \DB::raw('COALESCE(scores.negative_mark, 0) as negative_mark') // ⭐ SAFE
+        )
+        ->get()
+        ->groupBy('chest_no');
+
+    // 3️⃣ Build ranking list
+    $ranking = $fixed->map(function ($fp) use ($allScores) {
+
+        $scores = $allScores->get($fp->chest_no, collect());
+
+        $eventCount   = $scores->count();
+        $totalMarks   = $scores->sum('mark');                    // original marks
+        $negativeMark = $scores->sum('negative_mark');           // ⭐ safe always number
+        $finalMarks   = $totalMarks - $negativeMark;             // ⭐ final marks
+        $totalPoints  = $scores->sum('points');                  // points unchanged
+
+        // Avoid division by zero
+        $percentage = ($eventCount > 0)
+            ? round(($finalMarks / ($eventCount * 10)) * 100)
+            : 0;
+
+        return (object)[
+            'name'          => $fp->name,
+            'team'          => $fp->team,
+            'chest_no'      => $fp->chest_no,
+            'event_count'   => $eventCount,
+            'total_marks'   => $totalMarks,
+            'negative_mark' => $negativeMark,
+            'final_marks'   => $finalMarks,
+            'points'        => $totalPoints,
+            'percentage'    => $percentage,
+        ];
+    })
+    ->sortByDesc('percentage')
+    ->values();
+
+    return view('participants.ranking', compact('ranking'));
+}
+
+
+public function summary($chest_no)
+{
+    // Find participant
     $participant = Participant::where('chest_no', $chest_no)->firstOrFail();
 
-    // Load all scores for this chest number (group OR individual)
+    // Load ONLY individual scores
     $scores = Score::whereIn(
         'participant_id',
-        Participant::where('chest_no', $chest_no)->pluck('id')
+        Participant::where('chest_no', $chest_no)
+            ->whereNull('group_name')   // ✅ IGNORE group events
+            ->pluck('id')
     )
     ->with('event')
     ->get();
 
-    // Total events
+    // Total individual events
     $totalEvents = $scores->count();
 
-    // Total Marks (out of 10 each)
+    // Total marks
     $totalMarks = $scores->sum('mark');
 
-    // Percentage
+    // Percentage out of 10 per event
     $percentage = ($totalEvents > 0)
         ? round(($totalMarks / ($totalEvents * 10)) * 100)
         : 0;
 
-    // Total Points (Rank + Grade points)
+    // Rank + Grade points
     $totalPoints = $scores->sum('points');
 
     return view('participants.summary', compact(
@@ -131,46 +186,31 @@ class ParticipantController extends Controller
     ));
 }
 
-
-    // ---------------------------------------------------------
-    // PARTICIPANT RANKING (BY PERCENTAGE)
-    // ---------------------------------------------------------
-    public function ranking()
+public function saveNegativeMark(Request $request)
 {
-    // Load fixed participants list
-    $fixed = \DB::table('fixed_participants')->get();
+    $request->validate([
+        'chest_no'       => 'required',
+        'negative_mark'  => 'required|integer'
+    ]);
 
-    // Load scores grouped by chest_no
-    $allScores = Participant::with('score', 'event')
-                    ->join('scores', 'participants.id', '=', 'scores.participant_id')
-                    ->get()
-                    ->groupBy('chest_no');
+    // Get all individual event scores for this chest number
+    $scores = Score::whereIn('participant_id',
+                Participant::where('chest_no', $request->chest_no)->pluck('id')
+            )
+            ->whereNull('group_name') // apply only to individual scores
+            ->get();
 
-    $ranking = $fixed->map(function ($fp) use ($allScores) {
+    foreach ($scores as $score) {
+        $score->negative_mark = $request->negative_mark;
+        $score->save();
+    }
 
-        $scores = $allScores->get($fp->chest_no, collect());
-
-        $eventCount = $scores->count();
-
-        $totalMarks = $scores->sum('mark');
-        $totalPoints = $scores->sum('points');
-
-        $percentage = ($eventCount > 0)
-            ? round(($totalMarks / ($eventCount * 10)) * 100)
-            : 0;
-
-        return (object)[
-            'name'       => $fp->name,
-            'team'       => $fp->team,
-            'chest_no'   => $fp->chest_no,
-            'percentage' => $percentage,
-            'points'     => $totalPoints,
-        ];
-    })
-    ->sortByDesc('percentage')
-    ->values();
-
-    return view('participants.ranking', compact('ranking'));
+    return back()->with('success', 'Negative mark updated successfully!');
 }
+
+
+
+
+
 
 }

@@ -6,12 +6,16 @@
 
     <div class="text-center mb-4">
         <h2 class="fw-bold">Participant Ranking</h2>
-        <p class="text-muted">Ranked by Percentage (Marks out of 10 → 100%)</p>
+        <p class="text-muted">Only Individual Event Marks & Points are counted. Negative marks reduce only total marks.</p>
     </div>
 
     <a href="{{ route('participants.index') }}" class="btn btn-secondary mb-3">
         ← Back to Participants
     </a>
+
+    @if(session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
 
     <div class="card shadow">
         <div class="card-header text-center bg-dark text-white">
@@ -27,24 +31,31 @@
                         <th>Chest No</th>
                         <th>Name</th>
                         <th>Team</th>
+                        <th>Total Marks</th>
+                        <th>Negative Mark</th>
+                        <th>Final Marks</th>
+                        <th>Individual Events</th>
                         <th>Total Points</th>
                         <th>Percentage</th>
+                        <th>Reduce Mark</th> {{-- NEW --}}
                     </tr>
                 </thead>
 
                 <tbody>
+
                 @php $rank = 1; @endphp
 
                 @foreach($ranking as $r)
                     <tr>
-                        {{-- RANK BADGE --}}
+
+                        {{-- Rank Badge --}}
                         <td class="fw-bold">
                             @if($rank == 1)
                                 🥇 <span class="text-warning">{{ $rank }}</span>
                             @elseif($rank == 2)
                                 🥈 <span class="text-secondary">{{ $rank }}</span>
                             @elseif($rank == 3)
-                                🥉 <span class="text-brown">{{ $rank }}</span>
+                                🥉 <span>{{ $rank }}</span>
                             @else
                                 {{ $rank }}
                             @endif
@@ -55,21 +66,47 @@
 
                         <td>
                             @if($r->team == 'Thuras')
-                                <span class="badge bg-primary">{{ $r->team }}</span>
+                                <span class="badge bg-primary">Thuras</span>
                             @else
-                                <span class="badge bg-success">{{ $r->team }}</span>
+                                <span class="badge bg-success">Aqeeda</span>
                             @endif
                         </td>
 
-                        <td><strong>{{ $r->points }}</strong></td>
+                        {{-- Total Marks --}}
+                        <td class="fw-bold">{{ $r->total_marks }}</td>
 
-                        <td class="fw-bold">
-                            {{ $r->percentage }}%
+                        {{-- Negative --}}
+                        <td class="fw-bold text-danger">-{{ $r->negative_mark }}</td>
+
+                        {{-- Final Marks --}}
+                        <td class="fw-bold">{{ $r->final_marks }}</td>
+
+                        <td>{{ $r->event_count }}</td>
+                        <td><strong>{{ $r->points }}</strong></td>
+                        <td class="fw-bold">{{ $r->percentage }}%</td>
+
+                        {{-- ⭐ Reduce Mark Form --}}
+                        <td>
+                            <form action="{{ route('participants.negative.mark') }}" method="POST" class="d-flex">
+                                @csrf
+
+                                <input type="hidden" name="chest_no" value="{{ $r->chest_no }}">
+
+                                <input type="number"
+                                       name="negative_mark"
+                                       class="form-control form-control-sm me-2"
+                                       style="width: 70px;"
+                                       placeholder="-5"
+                                       required>
+
+                                <button class="btn btn-danger btn-sm">Save</button>
+                            </form>
                         </td>
 
                     </tr>
 
                     @php $rank++; @endphp
+
                 @endforeach
 
                 </tbody>

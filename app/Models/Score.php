@@ -18,6 +18,8 @@ class Score extends Model
     'grade',
     'rank',
     'points',
+    'negative_mark',
+
 ];
 
 

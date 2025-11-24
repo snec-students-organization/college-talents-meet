@@ -123,3 +123,8 @@ Route::get('/participants/ranking',
 
     Route::post('/results/penalty/add', [ResultController::class, 'addPenalty'])
      ->name('results.penalty.add');
+
+
+     Route::post('/participants/negative-mark', 
+    [ParticipantController::class, 'saveNegativeMark'])
+    ->name('participants.negative.mark');
